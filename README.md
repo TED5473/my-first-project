@@ -9,7 +9,22 @@ Israeli importer websites, and presented around a hero bubble chart that
 positions every model by **length × on-road price × sales volume**, colored
 by powertrain.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FTED5473%2Fmy-first-project&project-name=il-carlens&repository-name=il-carlens&env=DATABASE_URL,DIRECT_URL,ADMIN_API_TOKEN,CRON_SECRET&envDescription=Postgres%20connection%20strings%20%2B%20admin%2Fcron%20secrets.%20Use%20Supabase%2FNeon%20for%20the%20database.&envLink=https%3A%2F%2Fgithub.com%2FTED5473%2Fmy-first-project%2Fblob%2Fmain%2F.env.example)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FTED5473%2Fmy-first-project&project-name=il-carlens&repository-name=il-carlens&stores=%5B%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22neon%22%2C%22productSlug%22%3A%22neon%22%2C%22protocol%22%3A%22storage%22%7D%5D)
+
+### Non-technical users — the 3-click deploy
+
+1. Click the **Deploy with Vercel** button above.
+2. Sign in with GitHub (Vercel will ask if this is your first time).
+3. Click **Deploy**.
+
+Vercel will automatically provision a managed Neon Postgres database,
+wire its connection strings into the project, and build the app. After
+about 2 minutes you'll get a live URL like
+`https://il-carlens-xxxx.vercel.app` — open it, and the first visit
+auto-populates the database with the 2026 Israel market dataset (you'll
+see a brief "Getting things ready…" screen for about 15–30 seconds).
+That's it. The site stays live forever, refreshing itself every Sunday
+evening via Vercel Cron.
 
 ## Features
 

@@ -5,7 +5,7 @@
   "description": "IL CarLens — Israel Passenger Car Market Intelligence Platform",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && prisma migrate deploy && next build",
+    "build": "node scripts/prepare-env.mjs && prisma generate && (prisma migrate deploy || echo '[ilcl] skipping migrate (no DATABASE_URL yet — the dashboard will show a helpful first-boot screen)') && next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
