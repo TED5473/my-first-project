@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { SlidersHorizontal, X, Search, LayoutGrid, Layers } from "lucide-react";
+import { SlidersHorizontal, X, Search, LayoutGrid, Layers, Pin } from "lucide-react";
+import { isPinnedBrand } from "@/lib/filters";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -163,16 +164,26 @@ export function FiltersPanel({ value, onChange, options }: FiltersPanelProps) {
             <Section title={`Brand (${options.brands.length})`}>
               <div className="flex flex-wrap gap-1.5 max-h-[120px] overflow-y-auto pr-1">
                 {options.brands.map((b) => {
-                  const on = value.brands.includes(b);
+                  const pinned = isPinnedBrand(b);
+                  const on = pinned || value.brands.includes(b);
                   return (
                     <button
                       key={b}
-                      onClick={() => toggle("brands", b)}
+                      onClick={() => {
+                        if (pinned) return; // Pinned brands can't be deselected
+                        toggle("brands", b);
+                      }}
+                      title={pinned ? `${b} is always visible (pinned brand)` : undefined}
                       className={cn(
-                        "rounded-full border px-2.5 py-1 text-xs",
-                        on ? "bg-secondary border-foreground/20" : "text-muted-foreground",
+                        "rounded-full border px-2.5 py-1 text-xs inline-flex items-center gap-1",
+                        pinned
+                          ? "cursor-default bg-primary/10 border-primary/30 text-primary"
+                          : on
+                            ? "bg-secondary border-foreground/20"
+                            : "text-muted-foreground",
                       )}
                     >
+                      {pinned && <Pin className="h-3 w-3" />}
                       {b}
                     </button>
                   );

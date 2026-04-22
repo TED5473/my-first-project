@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import type { FiltersState } from "@/lib/types";
 import { formatIls } from "@/lib/utils";
 import { ORIGIN_LABELS } from "@/lib/enums";
+import { isPinnedBrand } from "@/lib/filters";
 
 interface ActiveFiltersProps {
   value: FiltersState;
@@ -49,6 +50,7 @@ export function ActiveFilters({ value, options, onChange }: ActiveFiltersProps) 
     });
   }
   for (const b of value.brands) {
+    if (isPinnedBrand(b)) continue; // pinned brands aren't really filters
     pills.push({
       key: `brand:${b}`,
       label: b,

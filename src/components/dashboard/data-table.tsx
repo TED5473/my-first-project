@@ -226,6 +226,7 @@ export function DataTable({ rows, onSelect, comparison, periodLabel }: Props) {
               {comparison ? <th className="px-3 py-2 text-right">Δ vs prior</th> : null}
               <Th k="ytdUnits" label="YTD" right sort={sort} onSort={toggleSort} />
               <th className="px-3 py-2 text-right">4-wk trend</th>
+              <th className="px-3 py-2 text-right">Source</th>
             </tr>
           </thead>
           <tbody>
@@ -296,12 +297,20 @@ export function DataTable({ rows, onSelect, comparison, periodLabel }: Props) {
                   <td className="px-3 py-2 text-right">
                     <Sparkline values={r.recentWeekly ?? []} />
                   </td>
+                  <td className="px-3 py-2 text-right">
+                    <SourcePill
+                      specs={r.sourceSpecs ?? null}
+                      volume={r.sourceVolume ?? null}
+                      updatedAt={r.updatedAt}
+                      importerUrl={r.importerUrl ?? undefined}
+                    />
+                  </td>
                 </tr>
               );
             })}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={comparison ? 12 : 11} className="px-3 py-10 text-center text-muted-foreground">
+                <td colSpan={comparison ? 13 : 12} className="px-3 py-10 text-center text-muted-foreground">
                   No trims match your filters.
                 </td>
               </tr>
@@ -310,6 +319,44 @@ export function DataTable({ rows, onSelect, comparison, periodLabel }: Props) {
         </table>
       </div>
     </div>
+  );
+}
+
+/** Compact pill that shows the origin of a row's data with a hover tooltip
+ *  listing specs source + volume source + last-updated timestamp. */
+function SourcePill({
+  specs,
+  volume,
+  updatedAt,
+  importerUrl,
+}: {
+  specs: string | null;
+  volume: string | null;
+  updatedAt?: string;
+  importerUrl?: string;
+}) {
+  const s = specs ?? "CARTUBE";
+  const v = volume ?? "IVIA";
+  const updated = updatedAt ? new Date(updatedAt).toLocaleDateString("en-IL") : "—";
+  const tooltip = `Specs: ${s}${importerUrl ? ` (${new URL(importerUrl).hostname})` : ""}\nVolume: ${v}\nLast updated: ${updated}`;
+  const tone =
+    s === "MANUAL"
+      ? "bg-amber-50 text-amber-700 border-amber-200"
+      : s === "IVIA"
+        ? "bg-sky-50 text-sky-700 border-sky-200"
+        : s === "IMPORTER"
+          ? "bg-violet-50 text-violet-700 border-violet-200"
+          : "bg-emerald-50 text-emerald-700 border-emerald-200";
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium whitespace-nowrap",
+        tone,
+      )}
+      title={tooltip}
+    >
+      {s}
+    </span>
   );
 }
 
