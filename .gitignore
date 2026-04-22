@@ -45,7 +45,6 @@ next-env.d.ts
 # prisma / sqlite dev data
 prisma/dev.db
 prisma/dev.db-journal
-prisma/migrations/**/migration_lock.toml
 
 # IDE
 .idea/

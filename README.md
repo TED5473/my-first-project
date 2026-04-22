@@ -9,7 +9,7 @@ Israeli importer websites, and presented around a hero bubble chart that
 positions every model by **length × on-road price × sales volume**, colored
 by powertrain.
 
-![bubble chart](public/favicon.svg)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FTED5473%2Fmy-first-project&project-name=il-carlens&repository-name=il-carlens&env=DATABASE_URL,DIRECT_URL,ADMIN_API_TOKEN,CRON_SECRET&envDescription=Postgres%20connection%20strings%20%2B%20admin%2Fcron%20secrets.%20Use%20Supabase%2FNeon%20for%20the%20database.&envLink=https%3A%2F%2Fgithub.com%2FTED5473%2Fmy-first-project%2Fblob%2Fmain%2F.env.example)
 
 ## Features
 
@@ -36,24 +36,46 @@ by powertrain.
 - **Next.js 15** (App Router, Server Components, Route Handlers)
 - **TypeScript** (strict)
 - **Tailwind CSS** + shadcn-style UI primitives (Radix)
-- **Prisma** ORM, SQLite dev / PostgreSQL prod (Supabase-ready)
+- **Prisma** ORM on **PostgreSQL** (Supabase / Neon / Railway / local docker)
 - **Recharts** for the bubble chart
 - **Playwright + pdfplumber / LLM parsing** for scraping (placeholders ready)
 - **Vercel Cron** for the weekly (Sunday evening, Israel time) refresh
+- **GitHub Actions** — CI (typecheck + lint + build against ephemeral
+  Postgres) and automatic preview/production deploys to Vercel
 
-## Quick start
+## Quick start (local)
+
+You need Node 22+ and either Docker (for the one-line Postgres) or an
+external Postgres URL.
 
 ```bash
+# 1. local Postgres
+docker compose up -d           # or: npm run db:up
+
+# 2. env + install
+cp .env.example .env
 npm install
-npm run db:push
-npm run db:seed
-npm run dev
+
+# 3. migrate + seed
+npm run db:deploy              # applies prisma/migrations
+npm run db:seed                # realistic 2026 IL market data
+
+# 4. run
+npm run dev                    # http://localhost:3000
 ```
 
-Open http://localhost:3000.
+Other handy scripts:
 
-Use `npm run scrape` to run the demo ingestion pipeline (writes a new
-weekly snapshot).
+| Script | What it does |
+| --- | --- |
+| `npm run db:up` / `db:down` | Start / stop the local Postgres container |
+| `npm run db:migrate` | Create a new migration from schema changes |
+| `npm run db:deploy` | Apply existing migrations (used in CI / Vercel) |
+| `npm run db:reset` | Drop, migrate, re-seed |
+| `npm run db:studio` | Open Prisma Studio |
+| `npm run scrape` | Run the demo I-VIA + importers pipeline |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run lint` | `next lint` |
 
 ## Environment
 
@@ -61,25 +83,72 @@ Copy `.env.example` → `.env` and fill:
 
 | Variable | Purpose |
 | --- | --- |
-| `DATABASE_URL` | SQLite path in dev, PostgreSQL URL in prod |
+| `DATABASE_URL` | Pooled Postgres URL (pgbouncer in prod) |
+| `DIRECT_URL` | Non-pooled Postgres URL used by Prisma Migrate |
 | `ADMIN_API_TOKEN` | Bearer token for `/api/admin/*` |
 | `CRON_SECRET` | Bearer token validated on `/api/cron/weekly` |
 | `IVIA_REPORTS_INDEX_URL` | I-VIA listing URL (prod scraper entrypoint) |
 
-## Production deploy (Vercel)
+## Deploy to Vercel
 
-1. Switch `prisma/schema.prisma` `provider = "postgresql"` and point
-   `DATABASE_URL` at Supabase or Neon.
-2. `vercel env add ADMIN_API_TOKEN` / `CRON_SECRET`.
-3. Push; the `vercel.json` cron runs the pipeline every Sunday 19:00 UTC
-   (~21:00 Israel time).
+### One-click
+
+Click the **Deploy with Vercel** button above. Vercel will clone the repo,
+ask you to fill in the env vars, and give you a live URL.
+
+You still need a Postgres. Free options that work well:
+
+- **Supabase** — free Postgres + built-in pooler. Use the "Connection
+  pooling" URL (port 6543, `?pgbouncer=true`) for `DATABASE_URL`, and the
+  regular connection string (port 5432) for `DIRECT_URL`.
+- **Neon** — same idea; the dashboard gives you both URLs explicitly.
+
+### Automated via GitHub Actions
+
+Two workflows ship in `.github/workflows`:
+
+| Workflow | Triggers | What it does |
+| --- | --- | --- |
+| `ci.yml` | push / PR to `main` | Spins up ephemeral Postgres, runs migrate + seed + typecheck + lint + build |
+| `vercel-preview.yml` | PR to `main` | Builds + deploys a Vercel Preview, comments the URL on the PR |
+| `vercel-production.yml` | push to `main` | Builds + deploys to production |
+
+To enable the deploy workflows, add the following in your GitHub repo:
+
+- **Secrets → Actions**:
+  - `VERCEL_TOKEN` — create at https://vercel.com/account/tokens
+- **Variables → Actions**:
+  - `VERCEL_ORG_ID` — from `.vercel/project.json` after `vercel link`
+  - `VERCEL_PROJECT_ID` — same file
+
+The deploy workflows no-op when `VERCEL_PROJECT_ID` isn't set, so you can
+merge this PR safely before configuring Vercel.
+
+After linking, configure `DATABASE_URL`, `DIRECT_URL`, `ADMIN_API_TOKEN`
+and `CRON_SECRET` in **Vercel → Project Settings → Environment Variables**.
+Prisma picks them up at build time via `postinstall` + `prisma migrate
+deploy` in the `build` script.
+
+### Cron
+
+`vercel.json` schedules `/api/cron/weekly` for Sunday 19:00 UTC
+(≈ Sunday evening Israel time). Vercel automatically injects the
+`CRON_SECRET` as a bearer token.
 
 ## Project structure
 
 ```
 prisma/
-  schema.prisma         # Brand / Model / Trim / SalesSnapshot / Alert / IngestionRun
+  schema.prisma         # Postgres — Brand / Model / Trim / SalesSnapshot / Alert / IngestionRun
+  migrations/           # Prisma migrations (checked in)
   seed.ts               # Realistic 2026 IL market seed (top 15 brands, ~30 models)
+
+docker-compose.yml      # Local Postgres 16 for development
+
+.github/workflows/
+  ci.yml                # typecheck · lint · build on push / PR
+  vercel-preview.yml    # preview deploy + PR comment
+  vercel-production.yml # production deploy on merge to main
 
 src/
   app/

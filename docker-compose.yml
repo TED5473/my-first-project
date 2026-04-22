@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ilcl-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ilcl
+      POSTGRES_PASSWORD: ilcl
+      POSTGRES_DB: ilcl
+    ports:
+      - "5432:5432"
+    volumes:
+      - ilcl_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ilcl -d ilcl"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  ilcl_pgdata:
