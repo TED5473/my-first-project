@@ -7,6 +7,7 @@ import type { TrimRow } from "@/lib/types";
 import { cn, formatIls, formatNumber, formatPct } from "@/lib/utils";
 import { POWERTRAIN_COLORS, type Powertrain } from "@/lib/enums";
 import { exportCsv, exportXlsx, exportPdf } from "@/lib/export";
+import { Sparkline } from "./sparkline";
 
 type SortKey =
   | "brand"
@@ -15,6 +16,7 @@ type SortKey =
   | "segment"
   | "powertrain"
   | "lengthMm"
+  | "rangeKm"
   | "onRoadPriceIls"
   | "periodUnits"
   | "ytdUnits";
@@ -32,18 +34,24 @@ export function DataTable({ rows, onSelect, comparison, periodLabel }: Props) {
     dir: "desc",
   });
 
+  // Derived "display range" per trim — BEV shows e-range, others show combined.
+  const rangeOf = React.useCallback((r: TrimRow) => {
+    if (r.powertrain === "BEV") return r.eRangeKm ?? r.combinedKm ?? null;
+    return r.combinedKm ?? r.eRangeKm ?? null;
+  }, []);
+
   const sorted = React.useMemo(() => {
     const cp = [...rows];
     cp.sort((a, b) => {
-      const av = a[sort.key] as any;
-      const bv = b[sort.key] as any;
+      const av = sort.key === "rangeKm" ? rangeOf(a) : (a[sort.key] as any);
+      const bv = sort.key === "rangeKm" ? rangeOf(b) : (b[sort.key] as any);
       if (av == null) return 1;
       if (bv == null) return -1;
       if (typeof av === "string") return sort.dir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
       return sort.dir === "asc" ? av - bv : bv - av;
     });
     return cp;
-  }, [rows, sort]);
+  }, [rows, sort, rangeOf]);
 
   function toggleSort(k: SortKey) {
     setSort((s) =>
@@ -83,10 +91,12 @@ export function DataTable({ rows, onSelect, comparison, periodLabel }: Props) {
               <Th k="segment" label="Segment" sort={sort} onSort={toggleSort} />
               <Th k="powertrain" label="Pwt" sort={sort} onSort={toggleSort} />
               <Th k="lengthMm" label="Length" right sort={sort} onSort={toggleSort} />
+              <Th k="rangeKm" label="Range" right sort={sort} onSort={toggleSort} />
               <Th k="onRoadPriceIls" label="On-road ₪" right sort={sort} onSort={toggleSort} />
               <Th k="periodUnits" label={"Period"} right sort={sort} onSort={toggleSort} />
               {comparison ? <th className="px-3 py-2 text-right">Δ vs prior</th> : null}
               <Th k="ytdUnits" label="YTD" right sort={sort} onSort={toggleSort} />
+              <th className="px-3 py-2 text-right">4-wk trend</th>
             </tr>
           </thead>
           <tbody>
@@ -116,6 +126,23 @@ export function DataTable({ rows, onSelect, comparison, periodLabel }: Props) {
                     </span>
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">{r.lengthMm.toLocaleString()}</td>
+                  <td className="px-3 py-2 text-right tabular-nums text-xs">
+                    {(() => {
+                      const km = rangeOf(r);
+                      if (km == null) return <span className="text-muted-foreground">—</span>;
+                      return (
+                        <span>
+                          {formatNumber(km)}
+                          <span className="text-muted-foreground"> km</span>
+                          {r.powertrain === "PHEV" && r.eRangeKm ? (
+                            <span className="block text-[10px] text-muted-foreground">
+                              {r.eRangeKm} km EV
+                            </span>
+                          ) : null}
+                        </span>
+                      );
+                    })()}
+                  </td>
                   <td className="px-3 py-2 text-right tabular-nums">{formatIls(r.onRoadPriceIls)}</td>
                   <td className="px-3 py-2 text-right tabular-nums font-medium">
                     {formatNumber(r.periodUnits)}
@@ -137,12 +164,15 @@ export function DataTable({ rows, onSelect, comparison, periodLabel }: Props) {
                   <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
                     {formatNumber(r.ytdUnits)}
                   </td>
+                  <td className="px-3 py-2 text-right">
+                    <Sparkline values={r.recentWeekly ?? []} />
+                  </td>
                 </tr>
               );
             })}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={comparison ? 10 : 9} className="px-3 py-10 text-center text-muted-foreground">
+                <td colSpan={comparison ? 12 : 11} className="px-3 py-10 text-center text-muted-foreground">
                   No trims match your filters.
                 </td>
               </tr>

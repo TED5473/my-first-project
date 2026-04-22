@@ -52,6 +52,32 @@ export async function getTrimRows(
     _sum: { units: true },
   });
 
+  // Sparkline data — the last SPARK_WEEKS weekly buckets for every trim.
+  // Keeps the query O(trims × weeks) but small in practice.
+  const SPARK_WEEKS = 8;
+  const sparkStart = new Date(now);
+  sparkStart.setDate(sparkStart.getDate() - 7 * SPARK_WEEKS);
+  const sparkRows = await prisma.salesSnapshot.findMany({
+    where: {
+      periodType: "WEEK",
+      periodStart: { gte: sparkStart, lte: now },
+    },
+    select: {
+      trimId: true,
+      modelId: true,
+      periodStart: true,
+      units: true,
+    },
+    orderBy: { periodStart: "asc" },
+  });
+  const sparkMap = new Map<string, number[]>();
+  for (const r of sparkRows) {
+    const key = r.trimId ? `t:${r.trimId}` : `m:${r.modelId}`;
+    const arr = sparkMap.get(key) ?? [];
+    arr.push(r.units);
+    sparkMap.set(key, arr);
+  }
+
   // We split sales by trimId when available, otherwise we proportionally
   // distribute model-level volumes across the trims of that model by their
   // relative list price share. For our seed data every snapshot has trimId.
@@ -82,6 +108,7 @@ export async function getTrimRows(
     onRoadPriceIls: t.onRoadPriceIls,
     priceListIls: t.priceListIls,
     eRangeKm: t.eRangeKm,
+    combinedKm: t.combinedKm,
     batteryKwh: t.batteryKwh,
     power: t.power,
     periodUnits: pMap.get(`t:${t.id}`) ?? pMap.get(`m:${t.modelId}`) ?? 0,
@@ -90,6 +117,7 @@ export async function getTrimRows(
       : undefined,
     ytdUnits: yMap.get(`t:${t.id}`) ?? yMap.get(`m:${t.modelId}`) ?? 0,
     importerUrl: t.importerUrl,
+    recentWeekly: sparkMap.get(`t:${t.id}`) ?? sparkMap.get(`m:${t.modelId}`) ?? [],
   }));
 }
 

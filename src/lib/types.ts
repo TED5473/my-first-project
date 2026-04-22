@@ -16,8 +16,13 @@ export interface TrimRow {
   onRoadPriceIls: number;
   priceListIls: number;
   eRangeKm: number | null;
+  /** Combined WLTP range in km — BEV = eRange, ICE/HEV = tank range,
+   *  PHEV = electric + fuel range combined. Always set post-calibration. */
+  combinedKm: number | null;
   batteryKwh: number | null;
   power: number | null;
+  /** Sparkline series — last 8 weekly unit counts (oldest → newest). */
+  recentWeekly?: number[];
   /** Units sold in the selected period (aggregated). */
   periodUnits: number;
   /** Units in the comparison period, if comparing. */
@@ -86,6 +91,8 @@ export interface ModelRow {
   trimCount: number;
   /** Distinct powertrains present in this model, for the tooltip. */
   powertrains: Powertrain[];
+  /** Aggregated recent-weekly series across all trims. */
+  recentWeekly?: number[];
 }
 
 export interface KpiBundle {
