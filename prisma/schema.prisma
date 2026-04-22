@@ -1,0 +1,127 @@
+// IL CarLens Prisma schema
+// SQLite for local dev; switch provider to "postgresql" (e.g. Supabase) in prod.
+// NOTE: SQLite doesn't support enums, so Powertrain and OriginBucket are
+// stored as strings. See src/lib/types.ts for the canonical unions.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// A car brand / importer.
+model Brand {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  slug         String   @unique
+  country      String
+  /// One of: CHINESE | KOREAN | JAPANESE | EUROPEAN | AMERICAN | OTHER
+  origin       String
+  logoUrl      String?
+  importerSite String?
+  models       Model[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+/// A model (nameplate). Trims hang off of Model.
+model Model {
+  id         String   @id @default(cuid())
+  brandId    String
+  name       String
+  slug       String
+  segment    String
+  bodyStyle  String
+  active     Boolean  @default(true)
+  notes      String?
+  trims      Trim[]
+  sales      SalesSnapshot[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  brand      Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@unique([brandId, slug])
+  @@index([segment])
+}
+
+/// A specific trim level of a model.
+model Trim {
+  id               String   @id @default(cuid())
+  modelId          String
+  name             String
+  /// One of: BEV | PHEV | HEV | MHEV | ICE
+  powertrain       String
+  lengthMm         Int
+  widthMm          Int?
+  heightMm         Int?
+  wheelbaseMm      Int?
+  batteryKwh       Float?
+  eRangeKm         Int?
+  combinedKm       Int?
+  power            Int?
+  fwdAwd           String?
+  priceListIls     Int
+  onRoadPriceIls   Int
+  taxTier          String?
+  importerUrl      String?
+  features         String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  model            Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  sales            SalesSnapshot[]
+
+  @@unique([modelId, name])
+  @@index([powertrain])
+  @@index([lengthMm])
+  @@index([onRoadPriceIls])
+}
+
+/// Weekly / monthly sales snapshot — one row per trim per period.
+model SalesSnapshot {
+  id         String   @id @default(cuid())
+  modelId    String
+  trimId     String?
+  periodType String
+  periodStart DateTime
+  periodEnd   DateTime
+  year        Int
+  weekOfYear  Int?
+  month       Int?
+  units       Int
+  source      String
+  notes       String?
+  createdAt  DateTime @default(now())
+
+  model      Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  trim       Trim?    @relation(fields: [trimId], references: [id], onDelete: SetNull)
+
+  @@unique([modelId, trimId, periodType, periodStart])
+  @@index([periodType, periodStart])
+  @@index([year])
+}
+
+/// Weekly intelligence alerts surfaced on the dashboard.
+model Alert {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  severity   String
+  title      String
+  body       String
+  link       String?
+}
+
+/// Audit log of scrape / ingestion runs.
+model IngestionRun {
+  id           String   @id @default(cuid())
+  startedAt    DateTime @default(now())
+  finishedAt   DateTime?
+  source       String
+  ok           Boolean  @default(false)
+  rowsUpserted Int      @default(0)
+  error        String?
+}
