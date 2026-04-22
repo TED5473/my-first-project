@@ -65,6 +65,38 @@ import { PrismaClient } from "@prisma/client";
 import type { Powertrain, OriginBucket } from "../src/lib/enums";
 import { startOfWeek, endOfWeek, isoWeek } from "../src/lib/utils";
 
+/**
+ * Combined-range helper. Fills `combinedKm` for trims that didn't supply it.
+ * Reasoning per powertrain:
+ *  - BEV  : WLTP electric range (already in eRangeKm).
+ *  - PHEV : electric + fuel range. IL trim cards advertise ~1,000-1,200 km
+ *           combined (cartube: Jaecoo J7 PHEV ≈ 1,100 km, Tiggo 7 Pro PHEV ≈
+ *           1,150 km, Atto 2 DM-i ≈ 1,050 km). We use e-range + 950 km fuel.
+ *  - HEV  : no plug, but modern IL hybrids (Corolla 21.3 km/l, RAV4 20 km/l)
+ *           routinely top 1,000 km on a tank. We bake a segment-based figure.
+ *  - MHEV : mild hybrid, essentially a slightly more efficient ICE; ~800-950 km.
+ *  - ICE  : 600-800 km depending on segment.
+ */
+function inferCombinedKm(
+  powertrain: Powertrain,
+  eRangeKm: number | undefined,
+  segment: string,
+): number {
+  const isBig = /D|E|J/.test(segment); // larger fuel tanks in D/E/J segments
+  switch (powertrain) {
+    case "BEV":
+      return eRangeKm ?? 380;
+    case "PHEV":
+      return Math.round((eRangeKm ?? 70) + 950);
+    case "HEV":
+      return isBig ? 1000 : 1100;
+    case "MHEV":
+      return isBig ? 850 : 950;
+    case "ICE":
+      return isBig ? 700 : 780;
+  }
+}
+
 interface SeedTrim {
   name: string;
   powertrain: Powertrain;
@@ -2070,6 +2102,8 @@ export async function runSeed(client?: PrismaClient) {
 
       const createdTrims: { id: string; weight: number }[] = [];
       for (const t of m.trims) {
+        const combinedKm =
+          t.combinedKm ?? inferCombinedKm(t.powertrain, t.eRangeKm, m.segment);
         const trim = await prisma.trim.create({
           data: {
             modelId: model.id,
@@ -2081,7 +2115,7 @@ export async function runSeed(client?: PrismaClient) {
             wheelbaseMm: t.wheelbaseMm,
             eRangeKm: t.eRangeKm,
             batteryKwh: t.batteryKwh,
-            combinedKm: t.combinedKm,
+            combinedKm,
             power: t.power,
             fwdAwd: t.fwdAwd,
             priceListIls: t.priceListIls,

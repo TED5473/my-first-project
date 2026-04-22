@@ -59,6 +59,11 @@ export function aggregateByModel(rows: TrimRow[]): ModelRow[] {
       : undefined;
     const ytdUnits = bucket.reduce((s, r) => s + r.ytdUnits, 0);
     const powertrains = Array.from(new Set(bucket.map((r) => r.powertrain))) as Powertrain[];
+    // Sum the weekly sparkline arrays element-wise.
+    const sparkLen = Math.max(0, ...bucket.map((r) => r.recentWeekly?.length ?? 0));
+    const recentWeekly: number[] = Array.from({ length: sparkLen }, (_, i) =>
+      bucket.reduce((s, r) => s + (r.recentWeekly?.[i] ?? 0), 0),
+    );
     out.push({
       id: key,
       brand: cheapest.brand,
@@ -76,6 +81,7 @@ export function aggregateByModel(rows: TrimRow[]): ModelRow[] {
       ytdUnits,
       trimCount: bucket.length,
       powertrains,
+      recentWeekly,
     });
   }
   return out;

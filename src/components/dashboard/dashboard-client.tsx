@@ -9,12 +9,15 @@ import { FiltersPanel } from "./filters-panel";
 import { DataTable } from "./data-table";
 import { TrimDrawer } from "./trim-drawer";
 import { AlertsList } from "./alerts-list";
+import { ActiveFilters } from "./active-filters";
+import { HeroSearch } from "./hero-search";
+import { LaunchPanel } from "./launch-panel";
 import { aggregateByModel, applyFilters, deriveOptions, DEFAULT_FILTERS } from "@/lib/filters";
 import type { FiltersState, KpiBundle, TrimRow, PeriodPreset } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Presentation } from "lucide-react";
+import { RefreshCw, Presentation, Rocket } from "lucide-react";
 
 interface DashboardClientProps {
   rows: TrimRow[];
@@ -54,6 +57,7 @@ export function DashboardClient({
 
   const [focus, setFocus] = React.useState<TrimRow | null>(null);
   const [open, setOpen] = React.useState(false);
+  const [launchOpen, setLaunchOpen] = React.useState(false);
 
   function onSelect(r: TrimRow) {
     setFocus(r);
@@ -77,35 +81,20 @@ export function DashboardClient({
   }
 
   // Recompute "live" KPIs using the filtered subset, so the numbers above the
-  // chart always reflect what the user sees.
-  const liveKpis = React.useMemo<KpiBundle>(() => {
-    const total = filtered.reduce((s, r) => s + r.periodUnits, 0);
-    const ev = filtered.filter((r) => r.powertrain === "BEV").reduce((s, r) => s + r.periodUnits, 0);
-    const ph = filtered.filter((r) => r.powertrain === "PHEV").reduce((s, r) => s + r.periodUnits, 0);
-    const cn = filtered.filter((r) => r.brandOrigin === "CHINESE").reduce((s, r) => s + r.periodUnits, 0);
-    const priceSum = filtered.reduce((s, r) => s + r.periodUnits * r.onRoadPriceIls, 0);
-    const brandMap = new Map<string, number>();
-    const modelMap = new Map<string, { name: string; brand: string; units: number }>();
-    for (const r of filtered) {
-      brandMap.set(r.brand, (brandMap.get(r.brand) ?? 0) + r.periodUnits);
-      const mk = `${r.brand}|${r.model}`;
-      const prev = modelMap.get(mk);
-      modelMap.set(mk, { name: r.model, brand: r.brand, units: (prev?.units ?? 0) + r.periodUnits });
-    }
-    const topBrand = [...brandMap.entries()].sort((a, b) => b[1] - a[1])[0];
-    const topModel = [...modelMap.values()].sort((a, b) => b.units - a.units)[0] ?? null;
-    return {
-      totalUnits: total,
-      yoyGrowthPct: kpis.yoyGrowthPct, // keep global YoY — filters distort per-trim YoY
-      evShare: total ? ev / total : 0,
-      phevShare: total ? ph / total : 0,
-      chineseShare: total ? cn / total : 0,
-      avgOnRoadPrice: total ? priceSum / total : 0,
-      topBrand: topBrand ? { name: topBrand[0], units: topBrand[1] } : null,
-      topModel,
-      periodLabel,
-    };
-  }, [filtered, kpis.yoyGrowthPct, periodLabel]);
+  // chart always reflect what the user sees. When comparison mode is on we
+  // also compute a prior-period bundle from the same filtered set using the
+  // per-row `comparisonUnits`.
+  const liveKpis = React.useMemo<KpiBundle>(
+    () => computeLiveKpis(filtered, "current", kpis.yoyGrowthPct, periodLabel),
+    [filtered, kpis.yoyGrowthPct, periodLabel],
+  );
+  const priorKpis = React.useMemo<KpiBundle | undefined>(
+    () =>
+      compare
+        ? computeLiveKpis(filtered, "prior", 0, `Prior ${periodLabel}`)
+        : undefined,
+    [filtered, compare, periodLabel],
+  );
 
   return (
     <div className="space-y-6">
@@ -128,7 +117,19 @@ export function DashboardClient({
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            <HeroSearch
+              value={filters.search}
+              onChange={(v) => setFilters({ ...filters, search: v })}
+            />
             <PeriodSelector value={period} compare={compare} />
+            <Button
+              size="sm"
+              className="gap-2"
+              onClick={() => setLaunchOpen(true)}
+            >
+              <Rocket className="h-4 w-4" />
+              Launch simulator
+            </Button>
             <Button variant="outline" size="sm" className="gap-2" onClick={onRefresh}>
               <RefreshCw className="h-4 w-4" />
               Refresh
@@ -136,7 +137,7 @@ export function DashboardClient({
             <Button
               variant="outline"
               size="sm"
-              className="gap-2"
+              className="gap-2 no-print"
               onClick={() => window.print()}
             >
               <Presentation className="h-4 w-4" />
@@ -146,8 +147,11 @@ export function DashboardClient({
         </div>
       </section>
 
+      {/* Active filters pills */}
+      <ActiveFilters value={filters} onChange={setFilters} options={options} />
+
       {/* KPIs */}
-      <KpiCards k={liveKpis} />
+      <KpiCards k={liveKpis} prior={priorKpis} />
 
       {/* Filters */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -167,14 +171,20 @@ export function DashboardClient({
                 Hover for specs & strategic insights · Click a bubble for the trim matrix
               </CardDescription>
             </div>
-            {comparisonKpis && (
+            {compare && priorKpis && (
               <Badge variant="secondary" className="gap-1.5">
-                Δ vs prior: {((kpis.totalUnits - comparisonKpis.totalUnits) / Math.max(1, comparisonKpis.totalUnits) * 100).toFixed(1)}%
+                {liveKpis.totalUnits >= priorKpis.totalUnits ? "▲" : "▼"}{" "}
+                {Math.abs(
+                  ((liveKpis.totalUnits - priorKpis.totalUnits) /
+                    Math.max(1, priorKpis.totalUnits)) *
+                    100,
+                ).toFixed(1)}
+                % vs prior
               </Badge>
             )}
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-2 sm:px-5">
           <BubbleChart
             rows={filters.groupBy === "model" ? aggregated : filtered}
             groupBy={filters.groupBy}
@@ -214,8 +224,51 @@ export function DashboardClient({
       </div>
 
       <TrimDrawer rows={rows} focus={focus} open={open} onOpenChange={setOpen} />
+      <LaunchPanel
+        rows={rows}
+        chineseShare={liveKpis.chineseShare}
+        open={launchOpen}
+        onOpenChange={setLaunchOpen}
+      />
     </div>
   );
+}
+
+function computeLiveKpis(
+  rows: TrimRow[],
+  which: "current" | "prior",
+  yoyGrowthPct: number,
+  periodLabel: string,
+): KpiBundle {
+  const unitsOf = (r: TrimRow) =>
+    which === "current" ? r.periodUnits : r.comparisonUnits ?? 0;
+  const total = rows.reduce((s, r) => s + unitsOf(r), 0);
+  const ev = rows.filter((r) => r.powertrain === "BEV").reduce((s, r) => s + unitsOf(r), 0);
+  const ph = rows.filter((r) => r.powertrain === "PHEV").reduce((s, r) => s + unitsOf(r), 0);
+  const cn = rows.filter((r) => r.brandOrigin === "CHINESE").reduce((s, r) => s + unitsOf(r), 0);
+  const priceSum = rows.reduce((s, r) => s + unitsOf(r) * r.onRoadPriceIls, 0);
+  const brandMap = new Map<string, number>();
+  const modelMap = new Map<string, { name: string; brand: string; units: number }>();
+  for (const r of rows) {
+    const u = unitsOf(r);
+    brandMap.set(r.brand, (brandMap.get(r.brand) ?? 0) + u);
+    const mk = `${r.brand}|${r.model}`;
+    const prev = modelMap.get(mk);
+    modelMap.set(mk, { name: r.model, brand: r.brand, units: (prev?.units ?? 0) + u });
+  }
+  const topBrand = [...brandMap.entries()].sort((a, b) => b[1] - a[1])[0];
+  const topModel = [...modelMap.values()].sort((a, b) => b.units - a.units)[0] ?? null;
+  return {
+    totalUnits: total,
+    yoyGrowthPct,
+    evShare: total ? ev / total : 0,
+    phevShare: total ? ph / total : 0,
+    chineseShare: total ? cn / total : 0,
+    avgOnRoadPrice: total ? priceSum / total : 0,
+    topBrand: topBrand ? { name: topBrand[0], units: topBrand[1] } : null,
+    topModel,
+    periodLabel,
+  };
 }
 
 function isoWeek(date: Date): number {

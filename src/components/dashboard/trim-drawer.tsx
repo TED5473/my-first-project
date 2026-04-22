@@ -41,7 +41,7 @@ export function TrimDrawer({ rows, open, onOpenChange, focus }: Props) {
                 <th className="text-left py-2">Pwt</th>
                 <th className="text-right py-2">Length</th>
                 <th className="text-right py-2">On-road</th>
-                <th className="text-right py-2">E-range</th>
+                <th className="text-right py-2">Range</th>
                 <th className="text-right py-2">kW</th>
                 <th className="text-right py-2">Period</th>
                 <th className="text-right py-2">YTD</th>
@@ -66,8 +66,25 @@ export function TrimDrawer({ rows, open, onOpenChange, focus }: Props) {
                     <td className="py-2 text-right tabular-nums font-medium">
                       {formatIls(t.onRoadPriceIls)}
                     </td>
-                    <td className="py-2 text-right tabular-nums">
-                      {t.eRangeKm ? `${t.eRangeKm} km` : "—"}
+                    <td className="py-2 text-right tabular-nums text-xs">
+                      {(() => {
+                        const km =
+                          t.powertrain === "BEV"
+                            ? t.eRangeKm ?? t.combinedKm
+                            : t.combinedKm ?? t.eRangeKm;
+                        if (km == null) return "—";
+                        return (
+                          <span>
+                            {formatNumber(km)}
+                            <span className="text-muted-foreground"> km</span>
+                            {t.powertrain === "PHEV" && t.eRangeKm ? (
+                              <span className="block text-[10px] text-muted-foreground">
+                                {t.eRangeKm} km EV
+                              </span>
+                            ) : null}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="py-2 text-right tabular-nums">{t.power ?? "—"}</td>
                     <td className="py-2 text-right tabular-nums">
