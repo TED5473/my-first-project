@@ -15,13 +15,41 @@ import {
   Cell,
 } from "recharts";
 import { POWERTRAIN_COLORS, POWERTRAINS, type Powertrain } from "@/lib/enums";
-import type { TrimRow } from "@/lib/types";
+import type { ModelRow, TrimRow } from "@/lib/types";
 import { formatIls, formatNumber } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
+/** Unified shape the chart actually plots. */
+interface BubblePoint {
+  id: string;
+  brand: string;
+  model: string;
+  trim?: string;
+  segment: string;
+  bodyStyle: string;
+  brandOrigin: string;
+  powertrain: Powertrain;
+  /** Distinct powertrains present; used for the model-level tooltip. */
+  powertrains?: Powertrain[];
+  lengthMm: number;
+  /** For trim view: onRoadPriceIls. For model view: cheapest-trim price. */
+  priceIls: number;
+  periodUnits: number;
+  ytdUnits: number;
+  eRangeKm?: number | null;
+  batteryKwh?: number | null;
+  power?: number | null;
+  trimCount?: number;
+  /** "trim" or "model", used for tooltip labels. */
+  kind: "trim" | "model";
+}
+
 interface BubbleChartProps {
-  rows: TrimRow[];
-  onSelect?: (row: TrimRow) => void;
+  /** Either trim rows (groupBy=trim) OR model rows (groupBy=model). */
+  rows: TrimRow[] | ModelRow[];
+  /** Which shape `rows` is in. */
+  groupBy: "trim" | "model";
+  onSelect?: (brand: string, model: string) => void;
   simulated?: {
     lengthMm: number;
     onRoadPriceIls: number;
@@ -29,58 +57,94 @@ interface BubbleChartProps {
     label: string;
     estUnits: number;
   } | null;
-  /** Show a text label next to each bubble (model name). Default true. */
   showLabels?: boolean;
 }
 
-/**
- * Hero bubble chart — Apple-style light theme.
- *  - X = vehicle length (mm)
- *  - Y = on-road price (₪)
- *  - Z = period sales volume (bubble area)
- *  - Color = powertrain (flat solids, no gradients)
- *  - Labels sit next to every bubble; overlap is reduced by deduplicating
- *    per-model (we label the highest-volume trim only) and nudging labels
- *    above/below the bubble depending on which side has more room.
- */
-/** X-axis focus window (mm). Bubbles outside this range are hidden so the
- *  chart stays readable — out-of-range trims still appear in the data
- *  table and the brand bar chart. */
 const LENGTH_MIN = 4400;
 const LENGTH_MAX = 5000;
 
-export function BubbleChart({ rows, onSelect, simulated, showLabels = true }: BubbleChartProps) {
+function toPoint(r: TrimRow | ModelRow, groupBy: "trim" | "model"): BubblePoint {
+  if (groupBy === "trim") {
+    const t = r as TrimRow;
+    return {
+      id: t.id,
+      brand: t.brand,
+      model: t.model,
+      trim: t.trim,
+      segment: t.segment,
+      bodyStyle: t.bodyStyle,
+      brandOrigin: t.brandOrigin,
+      powertrain: t.powertrain as Powertrain,
+      lengthMm: t.lengthMm,
+      priceIls: t.onRoadPriceIls,
+      periodUnits: t.periodUnits,
+      ytdUnits: t.ytdUnits,
+      eRangeKm: t.eRangeKm,
+      batteryKwh: t.batteryKwh,
+      power: t.power,
+      kind: "trim",
+    };
+  }
+  const m = r as ModelRow;
+  return {
+    id: m.id,
+    brand: m.brand,
+    model: m.model,
+    segment: m.segment,
+    bodyStyle: m.bodyStyle,
+    brandOrigin: m.brandOrigin,
+    powertrain: m.powertrain,
+    powertrains: m.powertrains,
+    lengthMm: m.lengthMm,
+    priceIls: m.basePriceIls,
+    periodUnits: m.periodUnits,
+    ytdUnits: m.ytdUnits,
+    trimCount: m.trimCount,
+    kind: "model",
+  };
+}
+
+export function BubbleChart({
+  rows,
+  groupBy,
+  onSelect,
+  simulated,
+  showLabels = true,
+}: BubbleChartProps) {
   const [hoverPt, setHoverPt] = React.useState<Powertrain | null>(null);
 
-  // Keep only bubbles inside the focus window. Simulated overlay (if any)
-  // is drawn separately and isn't filtered here.
-  const visibleRows = React.useMemo(
-    () => rows.filter((r) => r.lengthMm >= LENGTH_MIN && r.lengthMm <= LENGTH_MAX),
-    [rows],
+  const points = React.useMemo(
+    () => rows.map((r) => toPoint(r, groupBy)),
+    [rows, groupBy],
   );
 
-  // Split rows by powertrain so recharts can color per-series.
+  const visible = React.useMemo(
+    () => points.filter((p) => p.lengthMm >= LENGTH_MIN && p.lengthMm <= LENGTH_MAX),
+    [points],
+  );
+
   const series = React.useMemo(() => {
-    const map = new Map<Powertrain, TrimRow[]>();
+    const map = new Map<Powertrain, BubblePoint[]>();
     for (const pt of POWERTRAINS) map.set(pt, []);
-    for (const r of visibleRows) {
-      const bucket = map.get(r.powertrain as Powertrain);
-      if (bucket) bucket.push(r);
+    for (const p of visible) {
+      const bucket = map.get(p.powertrain);
+      if (bucket) bucket.push(p);
     }
     return map;
-  }, [visibleRows]);
+  }, [visible]);
 
-  // Pick one trim per model (highest periodUnits) to label, so the chart
-  // doesn't get spammed with duplicate model names.
+  // In trim mode: label the highest-volume trim per model only.
+  // In model mode: label every bubble (there's one per model already).
   const labelSet = React.useMemo(() => {
-    const byModel = new Map<string, TrimRow>();
-    for (const r of visibleRows) {
-      const key = `${r.brand}|${r.model}`;
-      const prev = byModel.get(key);
-      if (!prev || r.periodUnits > prev.periodUnits) byModel.set(key, r);
+    if (groupBy === "model") return new Set(visible.map((p) => p.id));
+    const byModel = new Map<string, BubblePoint>();
+    for (const p of visible) {
+      const k = `${p.brand}|${p.model}`;
+      const prev = byModel.get(k);
+      if (!prev || p.periodUnits > prev.periodUnits) byModel.set(k, p);
     }
-    return new Set([...byModel.values()].map((r) => r.id));
-  }, [visibleRows]);
+    return new Set([...byModel.values()].map((p) => p.id));
+  }, [visible, groupBy]);
 
   const totalsByPt = React.useMemo(() => {
     const out: Record<Powertrain, number> = {
@@ -90,23 +154,23 @@ export function BubbleChart({ rows, onSelect, simulated, showLabels = true }: Bu
       MHEV: 0,
       ICE: 0,
     };
-    for (const r of visibleRows) out[r.powertrain as Powertrain] += r.periodUnits;
+    for (const p of visible) out[p.powertrain] += p.periodUnits;
     return out;
-  }, [visibleRows]);
+  }, [visible]);
 
   const grandTotal = Object.values(totalsByPt).reduce((s, n) => s + n, 0);
-  const maxBubble = Math.max(1, ...visibleRows.map((r) => r.periodUnits));
-  const hiddenCount = rows.length - visibleRows.length;
+  const maxBubble = Math.max(1, ...visible.map((p) => p.periodUnits));
+  const hiddenCount = points.length - visible.length;
 
   return (
     <div className="w-full h-[580px] relative">
       {hiddenCount > 0 && (
         <div className="absolute top-2 left-2 z-10 text-[11px] text-muted-foreground bg-card/90 border border-border rounded-full px-2.5 py-1">
-          Showing length {LENGTH_MIN}–{LENGTH_MAX} mm · {hiddenCount} trim
+          Showing length {LENGTH_MIN}–{LENGTH_MAX} mm · {hiddenCount} {groupBy}
           {hiddenCount === 1 ? "" : "s"} outside range
         </div>
       )}
-      {/* Soft legend / totals bar */}
+
       <div className="absolute top-2 right-2 z-10 flex flex-wrap gap-1.5 text-xs">
         {POWERTRAINS.map((pt) => {
           const active = !hoverPt || hoverPt === pt;
@@ -116,9 +180,7 @@ export function BubbleChart({ rows, onSelect, simulated, showLabels = true }: Bu
               onMouseEnter={() => setHoverPt(pt)}
               onMouseLeave={() => setHoverPt(null)}
               className="flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 hover:border-foreground/20 transition-colors"
-              style={{
-                opacity: active ? 1 : 0.35,
-              }}
+              style={{ opacity: active ? 1 : 0.35 }}
             >
               <span
                 className="inline-block h-2 w-2 rounded-full"
@@ -140,8 +202,6 @@ export function BubbleChart({ rows, onSelect, simulated, showLabels = true }: Bu
       <ResponsiveContainer>
         <ScatterChart margin={{ top: 32, right: 40, bottom: 52, left: 72 }}>
           <CartesianGrid stroke="rgba(0,0,0,0.05)" strokeDasharray="0" vertical={false} />
-
-          {/* Segment reference bands (length-based buckets) — very faint */}
           <ReferenceArea x1={4400} x2={4550} fill="rgba(0,0,0,0.015)" />
           <ReferenceArea x1={4700} x2={4850} fill="rgba(0,0,0,0.015)" />
 
@@ -150,7 +210,7 @@ export function BubbleChart({ rows, onSelect, simulated, showLabels = true }: Bu
             dataKey="lengthMm"
             name="Length"
             unit=" mm"
-            domain={[4400, 5000]}
+            domain={[LENGTH_MIN, LENGTH_MAX]}
             allowDataOverflow
             tick={{ fill: "#6e6e73", fontSize: 11 }}
             stroke="rgba(0,0,0,0.15)"
@@ -166,7 +226,7 @@ export function BubbleChart({ rows, onSelect, simulated, showLabels = true }: Bu
           />
           <YAxis
             type="number"
-            dataKey="onRoadPriceIls"
+            dataKey="priceIls"
             name="Price"
             domain={[60000, "dataMax + 30000"]}
             tickFormatter={(v: number) => `₪${Math.round(v / 1000)}k`}
@@ -174,7 +234,10 @@ export function BubbleChart({ rows, onSelect, simulated, showLabels = true }: Bu
             tickLine={false}
             axisLine={{ stroke: "rgba(0,0,0,0.1)" }}
             label={{
-              value: "On-road Price (₪ incl. tax + VAT)",
+              value:
+                groupBy === "model"
+                  ? "On-road Base Price — cheapest trim (₪ incl. tax + VAT)"
+                  : "On-road Price (₪ incl. tax + VAT)",
               angle: -90,
               position: "insideLeft",
               offset: -20,
@@ -195,7 +258,6 @@ export function BubbleChart({ rows, onSelect, simulated, showLabels = true }: Bu
             cursor={{ strokeDasharray: "3 3", stroke: "rgba(0,0,0,0.15)" }}
             content={<RichTooltip />}
           />
-
           <Legend content={() => null} />
 
           {POWERTRAINS.map((pt) => {
@@ -212,7 +274,10 @@ export function BubbleChart({ rows, onSelect, simulated, showLabels = true }: Bu
                 stroke={color}
                 strokeWidth={1.5}
                 strokeOpacity={fade ? 0.15 : 1}
-                onClick={(p: any) => onSelect?.(p.payload as TrimRow)}
+                onClick={(p: any) => {
+                  const d = p.payload as BubblePoint;
+                  onSelect?.(d.brand, d.model);
+                }}
                 style={{ cursor: "pointer" }}
                 shape={(props: any) => (
                   <FlatBubble
@@ -223,8 +288,8 @@ export function BubbleChart({ rows, onSelect, simulated, showLabels = true }: Bu
                   />
                 )}
               >
-                {data.map((r) => (
-                  <Cell key={r.id} />
+                {data.map((p) => (
+                  <Cell key={p.id} />
                 ))}
               </Scatter>
             );
@@ -235,11 +300,11 @@ export function BubbleChart({ rows, onSelect, simulated, showLabels = true }: Bu
               name="SIMULATED"
               data={[
                 {
-                  ...simulated,
+                  lengthMm: simulated.lengthMm,
+                  priceIls: simulated.onRoadPriceIls,
                   periodUnits: Math.max(simulated.estUnits, 5),
                   brand: "Your Launch",
                   model: simulated.label,
-                  trim: "Simulated",
                   isSim: true,
                 },
               ]}
@@ -252,16 +317,11 @@ export function BubbleChart({ rows, onSelect, simulated, showLabels = true }: Bu
   );
 }
 
-/** Flat bubble: solid fill (no gradient) with a thin ring + optional label. */
 function FlatBubble(props: any) {
   const { cx, cy, payload, color, fade, showLabel } = props;
   if (!cx || !cy) return <g />;
-  // Recharts passes the bubble radius via props.node?.r in some versions;
-  // fall back to a scaled sqrt(units) so label offset matches the visual.
   const r = props.node?.r ?? Math.sqrt((props.size ?? 300) / Math.PI);
 
-  // Decide label side: if the bubble is in the top half of the chart, put
-  // the label below; otherwise above. Keeps labels inside the plot area.
   const plotHeight = props.yAxis?.height ?? 500;
   const plotTop = props.yAxis?.y ?? 0;
   const labelBelow = cy - plotTop < plotHeight * 0.35;
@@ -315,7 +375,7 @@ function SimulatedStar(props: any) {
 
 function RichTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
-  const d: TrimRow & { isSim?: boolean } = payload[0].payload;
+  const d: BubblePoint & { isSim?: boolean } = payload[0].payload;
   if (d.isSim) {
     return (
       <div className="rounded-xl border border-border bg-popover p-3 shadow-lg max-w-xs">
@@ -324,14 +384,14 @@ function RichTooltip({ active, payload }: any) {
           <span className="font-semibold">{d.model}</span>
         </div>
         <div className="text-xs text-muted-foreground">
-          {d.lengthMm} mm · {formatIls(d.onRoadPriceIls)} · est. {formatNumber(d.periodUnits)} units
+          {d.lengthMm} mm · {formatIls(d.priceIls)} · est.{" "}
+          {formatNumber(d.periodUnits)} units
         </div>
       </div>
     );
   }
-  const pt = d.powertrain as Powertrain;
-  const color = POWERTRAIN_COLORS[pt];
-  const insights = buildInsights(d);
+  const color = POWERTRAIN_COLORS[d.powertrain];
+  const pts = d.powertrains && d.powertrains.length > 1 ? d.powertrains : [d.powertrain];
 
   return (
     <div className="rounded-2xl border border-border bg-popover p-4 shadow-xl max-w-sm text-sm">
@@ -343,18 +403,37 @@ function RichTooltip({ active, payload }: any) {
           <div className="font-display text-[15px] font-semibold leading-tight text-foreground">
             {d.model}
           </div>
-          <div className="text-xs text-muted-foreground">{d.trim}</div>
+          {d.kind === "trim" && d.trim && (
+            <div className="text-xs text-muted-foreground">{d.trim}</div>
+          )}
+          {d.kind === "model" && d.trimCount ? (
+            <div className="text-xs text-muted-foreground">
+              {d.trimCount} trim{d.trimCount === 1 ? "" : "s"} · aggregated
+            </div>
+          ) : null}
         </div>
-        <span
-          className="rounded-full px-2 py-0.5 text-[11px] font-medium"
-          style={{ background: color + "1A", color }}
-        >
-          {pt}
-        </span>
+        <div className="flex flex-col gap-0.5 items-end">
+          {pts.map((p) => (
+            <span
+              key={p}
+              className="rounded-full px-2 py-0.5 text-[11px] font-medium"
+              style={{
+                background: POWERTRAIN_COLORS[p] + "1A",
+                color: POWERTRAIN_COLORS[p],
+              }}
+            >
+              {p}
+            </span>
+          ))}
+        </div>
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-        <Stat label="On-road" value={formatIls(d.onRoadPriceIls)} emphasize />
+        <Stat
+          label={d.kind === "model" ? "Base price" : "On-road"}
+          value={formatIls(d.priceIls)}
+          emphasize
+        />
         <Stat label="Length" value={`${d.lengthMm} mm`} />
         <Stat label="Period units" value={formatNumber(d.periodUnits)} emphasize />
         <Stat label="YTD" value={formatNumber(d.ytdUnits)} />
@@ -363,18 +442,10 @@ function RichTooltip({ active, payload }: any) {
         {d.power ? <Stat label="Power" value={`${d.power} kW`} /> : null}
       </div>
 
-      {insights.length > 0 && (
-        <div className="mt-3 border-t border-border pt-2 space-y-1">
-          {insights.map((i, idx) => (
-            <div key={idx} className="text-[11px] text-muted-foreground flex gap-1.5">
-              <span className="text-primary">›</span>
-              <span>{i}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="mt-2 text-[10px] uppercase tracking-wider text-muted-foreground/70">
+      <div
+        className="mt-2 text-[10px] uppercase tracking-wider text-muted-foreground/70"
+        style={{ borderColor: color }}
+      >
         Click for trim matrix
       </div>
     </div>
@@ -400,24 +471,4 @@ function Stat({
       </span>
     </div>
   );
-}
-
-function buildInsights(d: TrimRow): string[] {
-  const out: string[] = [];
-  if (d.brandOrigin === "CHINESE" && d.periodUnits > 200) {
-    out.push("Chinese brand momentum — strong weekly sell-through.");
-  }
-  if (d.powertrain === "BEV" && d.eRangeKm && d.eRangeKm < 400) {
-    out.push("Range below 400 km — sensitive to winter de-rating in IL.");
-  }
-  if (d.powertrain === "PHEV" && d.eRangeKm && d.eRangeKm >= 80) {
-    out.push("E-range ≥ 80 km — strong corporate-lease eligibility.");
-  }
-  if (d.onRoadPriceIls < 160_000 && d.bodyStyle === "SUV") {
-    out.push("Under ₪160k SUV — core price-war battleground.");
-  }
-  if (d.powertrain === "ICE" && d.periodUnits < 50) {
-    out.push("Low-volume ICE — at EOL risk as green-tax schedule escalates.");
-  }
-  return out.slice(0, 3);
 }

@@ -18,16 +18,20 @@ interface BrandBarChartProps {
   rows: TrimRow[];
   /** Cap how many brands to render (top N by volume). Default 12. */
   topN?: number;
+  /** "trim" = stack each trim separately (fine-grained). "model" = stack
+   *  per model only (trims collapsed into one segment). */
+  splitBy: "trim" | "model";
 }
 
 /**
  * Vertical bar chart of period sales volume, one bar per brand, stacked by
- * individual trim. Each trim gets its own color from the shared brand
- * palette so the segments read as "sub-units of the brand".
+ * trim or by model depending on splitBy. Each segment gets a color from
+ * the brand's hue scale so segments read as "sub-units of the brand".
  */
-export function BrandBarChart({ rows, topN = 12 }: BrandBarChartProps) {
+export function BrandBarChart({ rows, topN = 12, splitBy }: BrandBarChartProps) {
   const { data, trimKeys, trimColors, trimLabels } = React.useMemo(() => {
-    // Step 1: aggregate by brand, keep per-trim buckets.
+    // Step 1: aggregate by brand, keep per-segment buckets (segment = trim
+    //   or model depending on splitBy).
     const byBrand = new Map<
       string,
       { total: number; trims: Map<string, { units: number; label: string }> }
@@ -38,10 +42,16 @@ export function BrandBarChart({ rows, topN = 12 }: BrandBarChartProps) {
         trims: new Map(),
       };
       brand.total += r.periodUnits;
-      const trimKey = `${r.brand}__${r.id}`;
-      brand.trims.set(trimKey, {
-        units: r.periodUnits,
-        label: `${r.model} — ${r.trim}`,
+      const segKey =
+        splitBy === "trim"
+          ? `${r.brand}__${r.id}`
+          : `${r.brand}__${r.model}`;
+      const label =
+        splitBy === "trim" ? `${r.model} — ${r.trim}` : r.model;
+      const prev = brand.trims.get(segKey);
+      brand.trims.set(segKey, {
+        units: (prev?.units ?? 0) + r.periodUnits,
+        label,
       });
       byBrand.set(r.brand, brand);
     }

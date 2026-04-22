@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { SlidersHorizontal, X, Search } from "lucide-react";
+import { SlidersHorizontal, X, Search, LayoutGrid, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ interface FiltersPanelProps {
     lengthMax: number;
     priceMin: number;
     priceMax: number;
+    models: { key: string; brand: string; model: string }[];
   };
 }
 
@@ -31,15 +32,62 @@ export function FiltersPanel({ value, onChange, options }: FiltersPanelProps) {
     onChange({ ...value, [key]: next });
   }
 
+  const [modelQuery, setModelQuery] = React.useState("");
+
   const activeCount =
     value.powertrains.length +
     value.brands.length +
     value.origins.length +
     value.segments.length +
+    value.models.length +
     (value.search ? 1 : 0);
+
+  // Filter the list of models by brand scope (if any brands selected) and
+  // by the small in-popover search box.
+  const filteredModels = React.useMemo(() => {
+    const q = modelQuery.trim().toLowerCase();
+    return options.models
+      .filter((m) => value.brands.length === 0 || value.brands.includes(m.brand))
+      .filter(
+        (m) =>
+          !q ||
+          m.model.toLowerCase().includes(q) ||
+          m.brand.toLowerCase().includes(q),
+      );
+  }, [options.models, value.brands, modelQuery]);
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
+      {/* Group-by toggle (Trim vs Model) */}
+      <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 text-[12px]">
+        <button
+          onClick={() => onChange({ ...value, groupBy: "model" })}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-medium transition-colors",
+            value.groupBy === "model"
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+          title="One bubble per model — aggregates its trims"
+        >
+          <LayoutGrid className="h-3.5 w-3.5" />
+          By model
+        </button>
+        <button
+          onClick={() => onChange({ ...value, groupBy: "trim" })}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-medium transition-colors",
+            value.groupBy === "trim"
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+          title="One bubble per trim"
+        >
+          <Layers className="h-3.5 w-3.5" />
+          By trim
+        </button>
+      </div>
+
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
@@ -132,6 +180,48 @@ export function FiltersPanel({ value, onChange, options }: FiltersPanelProps) {
               </div>
             </Section>
 
+            {/* Models */}
+            <Section
+              title={`Model (${
+                value.models.length ? `${value.models.length}/${filteredModels.length}` : filteredModels.length
+              })`}
+            >
+              <div className="relative mb-2">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  value={modelQuery}
+                  onChange={(e) => setModelQuery(e.target.value)}
+                  placeholder="Filter models…"
+                  className="h-8 pl-8 text-xs"
+                />
+              </div>
+              <div className="flex flex-col gap-1 max-h-[180px] overflow-y-auto pr-1">
+                {filteredModels.map((m) => {
+                  const on = value.models.includes(m.key);
+                  return (
+                    <label
+                      key={m.key}
+                      className="flex items-center gap-2 cursor-pointer text-xs py-1 px-2 rounded-md hover:bg-secondary/70"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={on}
+                        onChange={() => toggle("models", m.key)}
+                        className="h-3.5 w-3.5 rounded border-border accent-primary"
+                      />
+                      <span className="text-muted-foreground">{m.brand}</span>
+                      <span className="font-medium text-foreground">{m.model}</span>
+                    </label>
+                  );
+                })}
+                {filteredModels.length === 0 && (
+                  <div className="text-xs text-muted-foreground italic px-2 py-2">
+                    No models match.
+                  </div>
+                )}
+              </div>
+            </Section>
+
             {/* Segments */}
             <Section title="Segment">
               <div className="flex flex-wrap gap-1.5">
@@ -199,6 +289,7 @@ export function FiltersPanel({ value, onChange, options }: FiltersPanelProps) {
               brands: [],
               origins: [],
               segments: [],
+              models: [],
               search: "",
             })
           }
