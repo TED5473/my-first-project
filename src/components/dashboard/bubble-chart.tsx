@@ -43,31 +43,44 @@ interface BubbleChartProps {
  *    per-model (we label the highest-volume trim only) and nudging labels
  *    above/below the bubble depending on which side has more room.
  */
+/** X-axis focus window (mm). Bubbles outside this range are hidden so the
+ *  chart stays readable — out-of-range trims still appear in the data
+ *  table and the brand bar chart. */
+const LENGTH_MIN = 4400;
+const LENGTH_MAX = 5000;
+
 export function BubbleChart({ rows, onSelect, simulated, showLabels = true }: BubbleChartProps) {
   const [hoverPt, setHoverPt] = React.useState<Powertrain | null>(null);
+
+  // Keep only bubbles inside the focus window. Simulated overlay (if any)
+  // is drawn separately and isn't filtered here.
+  const visibleRows = React.useMemo(
+    () => rows.filter((r) => r.lengthMm >= LENGTH_MIN && r.lengthMm <= LENGTH_MAX),
+    [rows],
+  );
 
   // Split rows by powertrain so recharts can color per-series.
   const series = React.useMemo(() => {
     const map = new Map<Powertrain, TrimRow[]>();
     for (const pt of POWERTRAINS) map.set(pt, []);
-    for (const r of rows) {
+    for (const r of visibleRows) {
       const bucket = map.get(r.powertrain as Powertrain);
       if (bucket) bucket.push(r);
     }
     return map;
-  }, [rows]);
+  }, [visibleRows]);
 
   // Pick one trim per model (highest periodUnits) to label, so the chart
   // doesn't get spammed with duplicate model names.
   const labelSet = React.useMemo(() => {
     const byModel = new Map<string, TrimRow>();
-    for (const r of rows) {
+    for (const r of visibleRows) {
       const key = `${r.brand}|${r.model}`;
       const prev = byModel.get(key);
       if (!prev || r.periodUnits > prev.periodUnits) byModel.set(key, r);
     }
     return new Set([...byModel.values()].map((r) => r.id));
-  }, [rows]);
+  }, [visibleRows]);
 
   const totalsByPt = React.useMemo(() => {
     const out: Record<Powertrain, number> = {
@@ -77,15 +90,22 @@ export function BubbleChart({ rows, onSelect, simulated, showLabels = true }: Bu
       MHEV: 0,
       ICE: 0,
     };
-    for (const r of rows) out[r.powertrain as Powertrain] += r.periodUnits;
+    for (const r of visibleRows) out[r.powertrain as Powertrain] += r.periodUnits;
     return out;
-  }, [rows]);
+  }, [visibleRows]);
 
   const grandTotal = Object.values(totalsByPt).reduce((s, n) => s + n, 0);
-  const maxBubble = Math.max(1, ...rows.map((r) => r.periodUnits));
+  const maxBubble = Math.max(1, ...visibleRows.map((r) => r.periodUnits));
+  const hiddenCount = rows.length - visibleRows.length;
 
   return (
     <div className="w-full h-[580px] relative">
+      {hiddenCount > 0 && (
+        <div className="absolute top-2 left-2 z-10 text-[11px] text-muted-foreground bg-card/90 border border-border rounded-full px-2.5 py-1">
+          Showing length {LENGTH_MIN}–{LENGTH_MAX} mm · {hiddenCount} trim
+          {hiddenCount === 1 ? "" : "s"} outside range
+        </div>
+      )}
       {/* Soft legend / totals bar */}
       <div className="absolute top-2 right-2 z-10 flex flex-wrap gap-1.5 text-xs">
         {POWERTRAINS.map((pt) => {
@@ -122,15 +142,16 @@ export function BubbleChart({ rows, onSelect, simulated, showLabels = true }: Bu
           <CartesianGrid stroke="rgba(0,0,0,0.05)" strokeDasharray="0" vertical={false} />
 
           {/* Segment reference bands (length-based buckets) — very faint */}
-          <ReferenceArea x1={3500} x2={4200} fill="rgba(0,0,0,0.015)" />
-          <ReferenceArea x1={4550} x2={4800} fill="rgba(0,0,0,0.015)" />
+          <ReferenceArea x1={4400} x2={4550} fill="rgba(0,0,0,0.015)" />
+          <ReferenceArea x1={4700} x2={4850} fill="rgba(0,0,0,0.015)" />
 
           <XAxis
             type="number"
             dataKey="lengthMm"
             name="Length"
             unit=" mm"
-            domain={[3500, 5400]}
+            domain={[4400, 5000]}
+            allowDataOverflow
             tick={{ fill: "#6e6e73", fontSize: 11 }}
             stroke="rgba(0,0,0,0.15)"
             tickLine={false}
@@ -257,7 +278,6 @@ function FlatBubble(props: any) {
         stroke={color}
         strokeWidth={1.75}
       />
-      <circle cx={cx} cy={cy} r={Math.max(1, r * 0.22)} fill={color} />
       {showLabel && payload?.model && (
         <text
           x={cx}
@@ -269,12 +289,12 @@ function FlatBubble(props: any) {
             fontWeight: 500,
             fill: "#1d1d1f",
             paintOrder: "stroke",
-            stroke: "rgba(255,255,255,0.9)",
+            stroke: "rgba(255,255,255,0.92)",
             strokeWidth: 3,
             strokeLinejoin: "round",
           }}
         >
-          {payload.model}
+          {payload.brand ? `${payload.brand} ${payload.model}` : payload.model}
         </text>
       )}
     </g>
