@@ -52,7 +52,7 @@ export function TrimDrawer({ rows, open, onOpenChange, focus }: Props) {
               {trims.map((t) => {
                 const color = POWERTRAIN_COLORS[t.powertrain as Powertrain];
                 return (
-                  <tr key={t.id} className="border-t border-white/5">
+                  <tr key={t.id} className="border-t border-border">
                     <td className="py-2">{t.trim}</td>
                     <td className="py-2">
                       <span

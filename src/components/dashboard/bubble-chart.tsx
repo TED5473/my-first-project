@@ -29,17 +29,21 @@ interface BubbleChartProps {
     label: string;
     estUnits: number;
   } | null;
+  /** Show a text label next to each bubble (model name). Default true. */
+  showLabels?: boolean;
 }
 
 /**
- * The hero bubble chart: X=length, Y=on-road price, Z=period volume,
- * colored by powertrain. Presentation-ready with:
- *  - Segment reference bands (subtle vertical bands at length breakpoints)
- *  - Per-powertrain legend with totals
- *  - Rich tooltip (brand, model, trim, specs, strategic tags)
- *  - Click opens the trim drawer via onSelect.
+ * Hero bubble chart — Apple-style light theme.
+ *  - X = vehicle length (mm)
+ *  - Y = on-road price (₪)
+ *  - Z = period sales volume (bubble area)
+ *  - Color = powertrain (flat solids, no gradients)
+ *  - Labels sit next to every bubble; overlap is reduced by deduplicating
+ *    per-model (we label the highest-volume trim only) and nudging labels
+ *    above/below the bubble depending on which side has more room.
  */
-export function BubbleChart({ rows, onSelect, simulated }: BubbleChartProps) {
+export function BubbleChart({ rows, onSelect, simulated, showLabels = true }: BubbleChartProps) {
   const [hoverPt, setHoverPt] = React.useState<Powertrain | null>(null);
 
   // Split rows by powertrain so recharts can color per-series.
@@ -51,6 +55,18 @@ export function BubbleChart({ rows, onSelect, simulated }: BubbleChartProps) {
       if (bucket) bucket.push(r);
     }
     return map;
+  }, [rows]);
+
+  // Pick one trim per model (highest periodUnits) to label, so the chart
+  // doesn't get spammed with duplicate model names.
+  const labelSet = React.useMemo(() => {
+    const byModel = new Map<string, TrimRow>();
+    for (const r of rows) {
+      const key = `${r.brand}|${r.model}`;
+      const prev = byModel.get(key);
+      if (!prev || r.periodUnits > prev.periodUnits) byModel.set(key, r);
+    }
+    return new Set([...byModel.values()].map((r) => r.id));
   }, [rows]);
 
   const totalsByPt = React.useMemo(() => {
@@ -69,9 +85,9 @@ export function BubbleChart({ rows, onSelect, simulated }: BubbleChartProps) {
   const maxBubble = Math.max(1, ...rows.map((r) => r.periodUnits));
 
   return (
-    <div className="w-full h-[560px] relative">
-      {/* Soft legend / totals bar (double-duty with Recharts Legend) */}
-      <div className="absolute top-2 right-2 z-10 flex flex-wrap gap-2 text-xs">
+    <div className="w-full h-[580px] relative">
+      {/* Soft legend / totals bar */}
+      <div className="absolute top-2 right-2 z-10 flex flex-wrap gap-1.5 text-xs">
         {POWERTRAINS.map((pt) => {
           const active = !hoverPt || hoverPt === pt;
           return (
@@ -79,17 +95,16 @@ export function BubbleChart({ rows, onSelect, simulated }: BubbleChartProps) {
               key={pt}
               onMouseEnter={() => setHoverPt(pt)}
               onMouseLeave={() => setHoverPt(null)}
-              className="flex items-center gap-1.5 rounded-full border px-2.5 py-1 glass hover:border-white/20 transition-colors"
+              className="flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 hover:border-foreground/20 transition-colors"
               style={{
                 opacity: active ? 1 : 0.35,
-                borderColor: active ? POWERTRAIN_COLORS[pt] + "66" : undefined,
               }}
             >
               <span
                 className="inline-block h-2 w-2 rounded-full"
                 style={{ background: POWERTRAIN_COLORS[pt] }}
               />
-              <span className="font-medium">{pt}</span>
+              <span className="font-medium text-foreground">{pt}</span>
               <span className="text-muted-foreground">
                 {formatNumber(totalsByPt[pt])} ·{" "}
                 {grandTotal > 0
@@ -103,23 +118,12 @@ export function BubbleChart({ rows, onSelect, simulated }: BubbleChartProps) {
       </div>
 
       <ResponsiveContainer>
-        <ScatterChart margin={{ top: 24, right: 32, bottom: 48, left: 64 }}>
-          <defs>
-            {POWERTRAINS.map((pt) => (
-              <radialGradient key={pt} id={`grad-${pt}`} cx="35%" cy="35%" r="65%">
-                <stop offset="0%" stopColor={POWERTRAIN_COLORS[pt]} stopOpacity={0.95} />
-                <stop offset="100%" stopColor={POWERTRAIN_COLORS[pt]} stopOpacity={0.35} />
-              </radialGradient>
-            ))}
-          </defs>
+        <ScatterChart margin={{ top: 32, right: 40, bottom: 52, left: 72 }}>
+          <CartesianGrid stroke="rgba(0,0,0,0.05)" strokeDasharray="0" vertical={false} />
 
-          <CartesianGrid stroke="rgba(255,255,255,0.06)" strokeDasharray="3 6" />
-
-          {/* Segment reference bands (length-based buckets) */}
-          <ReferenceArea x1={3500} x2={4200} fill="rgba(255,255,255,0.02)" />
-          <ReferenceArea x1={4200} x2={4550} fill="rgba(255,255,255,0.035)" />
-          <ReferenceArea x1={4550} x2={4800} fill="rgba(255,255,255,0.02)" />
-          <ReferenceArea x1={4800} x2={5400} fill="rgba(255,255,255,0.035)" />
+          {/* Segment reference bands (length-based buckets) — very faint */}
+          <ReferenceArea x1={3500} x2={4200} fill="rgba(0,0,0,0.015)" />
+          <ReferenceArea x1={4550} x2={4800} fill="rgba(0,0,0,0.015)" />
 
           <XAxis
             type="number"
@@ -127,13 +131,15 @@ export function BubbleChart({ rows, onSelect, simulated }: BubbleChartProps) {
             name="Length"
             unit=" mm"
             domain={[3500, 5400]}
-            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
-            stroke="rgba(255,255,255,0.2)"
+            tick={{ fill: "#6e6e73", fontSize: 11 }}
+            stroke="rgba(0,0,0,0.15)"
+            tickLine={false}
+            axisLine={{ stroke: "rgba(0,0,0,0.1)" }}
             label={{
               value: "Vehicle Length (mm)",
               position: "insideBottom",
-              offset: -12,
-              fill: "hsl(var(--muted-foreground))",
+              offset: -14,
+              fill: "#6e6e73",
               fontSize: 12,
             }}
           />
@@ -143,17 +149,18 @@ export function BubbleChart({ rows, onSelect, simulated }: BubbleChartProps) {
             name="Price"
             domain={[60000, "dataMax + 30000"]}
             tickFormatter={(v: number) => `₪${Math.round(v / 1000)}k`}
-            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
-            stroke="rgba(255,255,255,0.2)"
+            tick={{ fill: "#6e6e73", fontSize: 11 }}
+            tickLine={false}
+            axisLine={{ stroke: "rgba(0,0,0,0.1)" }}
             label={{
               value: "On-road Price (₪ incl. tax + VAT)",
               angle: -90,
               position: "insideLeft",
-              offset: -24,
-              fill: "hsl(var(--muted-foreground))",
+              offset: -20,
+              fill: "#6e6e73",
               fontSize: 12,
             }}
-            width={72}
+            width={76}
           />
           <ZAxis
             type="number"
@@ -164,7 +171,7 @@ export function BubbleChart({ rows, onSelect, simulated }: BubbleChartProps) {
           />
 
           <Tooltip
-            cursor={{ strokeDasharray: "3 3", stroke: "rgba(255,255,255,0.2)" }}
+            cursor={{ strokeDasharray: "3 3", stroke: "rgba(0,0,0,0.15)" }}
             content={<RichTooltip />}
           />
 
@@ -173,20 +180,30 @@ export function BubbleChart({ rows, onSelect, simulated }: BubbleChartProps) {
           {POWERTRAINS.map((pt) => {
             const data = series.get(pt) ?? [];
             const fade = hoverPt && hoverPt !== pt;
+            const color = POWERTRAIN_COLORS[pt];
             return (
               <Scatter
                 key={pt}
                 name={pt}
                 data={data}
-                fill={`url(#grad-${pt})`}
-                stroke={POWERTRAIN_COLORS[pt]}
-                strokeWidth={1.25}
-                opacity={fade ? 0.15 : 0.92}
+                fill={color}
+                fillOpacity={fade ? 0.08 : 0.78}
+                stroke={color}
+                strokeWidth={1.5}
+                strokeOpacity={fade ? 0.15 : 1}
                 onClick={(p: any) => onSelect?.(p.payload as TrimRow)}
                 style={{ cursor: "pointer" }}
+                shape={(props: any) => (
+                  <FlatBubble
+                    {...props}
+                    color={color}
+                    fade={!!fade}
+                    showLabel={showLabels && labelSet.has(props.payload.id)}
+                  />
+                )}
               >
                 {data.map((r) => (
-                  <Cell key={r.id} fill={`url(#grad-${pt})`} />
+                  <Cell key={r.id} />
                 ))}
               </Scatter>
             );
@@ -214,13 +231,63 @@ export function BubbleChart({ rows, onSelect, simulated }: BubbleChartProps) {
   );
 }
 
+/** Flat bubble: solid fill (no gradient) with a thin ring + optional label. */
+function FlatBubble(props: any) {
+  const { cx, cy, payload, color, fade, showLabel } = props;
+  if (!cx || !cy) return <g />;
+  // Recharts passes the bubble radius via props.node?.r in some versions;
+  // fall back to a scaled sqrt(units) so label offset matches the visual.
+  const r = props.node?.r ?? Math.sqrt((props.size ?? 300) / Math.PI);
+
+  // Decide label side: if the bubble is in the top half of the chart, put
+  // the label below; otherwise above. Keeps labels inside the plot area.
+  const plotHeight = props.yAxis?.height ?? 500;
+  const plotTop = props.yAxis?.y ?? 0;
+  const labelBelow = cy - plotTop < plotHeight * 0.35;
+  const labelY = labelBelow ? cy + r + 11 : cy - r - 6;
+
+  return (
+    <g opacity={fade ? 0.15 : 1}>
+      <circle
+        cx={cx}
+        cy={cy}
+        r={r}
+        fill={color}
+        fillOpacity={0.22}
+        stroke={color}
+        strokeWidth={1.75}
+      />
+      <circle cx={cx} cy={cy} r={Math.max(1, r * 0.22)} fill={color} />
+      {showLabel && payload?.model && (
+        <text
+          x={cx}
+          y={labelY}
+          textAnchor="middle"
+          className="pointer-events-none"
+          style={{
+            fontSize: 11,
+            fontWeight: 500,
+            fill: "#1d1d1f",
+            paintOrder: "stroke",
+            stroke: "rgba(255,255,255,0.9)",
+            strokeWidth: 3,
+            strokeLinejoin: "round",
+          }}
+        >
+          {payload.model}
+        </text>
+      )}
+    </g>
+  );
+}
+
 function SimulatedStar(props: any) {
   const { cx, cy } = props;
   if (!cx || !cy) return <g />;
   return (
     <g>
-      <circle cx={cx} cy={cy} r={24} fill="rgba(255,255,255,0.06)" />
-      <circle cx={cx} cy={cy} r={12} fill="#fff" opacity={0.9} />
+      <circle cx={cx} cy={cy} r={22} fill="rgba(0,0,0,0.04)" />
+      <circle cx={cx} cy={cy} r={11} fill="#ffffff" stroke="#1d1d1f" strokeWidth={1.5} />
       <circle cx={cx} cy={cy} r={4} fill="#0038B8" />
     </g>
   );
@@ -231,7 +298,7 @@ function RichTooltip({ active, payload }: any) {
   const d: TrimRow & { isSim?: boolean } = payload[0].payload;
   if (d.isSim) {
     return (
-      <div className="rounded-lg border bg-popover/95 backdrop-blur-md p-3 shadow-2xl max-w-xs">
+      <div className="rounded-xl border border-border bg-popover p-3 shadow-lg max-w-xs">
         <div className="flex items-center gap-2 mb-1">
           <Badge variant="default">Simulation</Badge>
           <span className="font-semibold">{d.model}</span>
@@ -244,24 +311,23 @@ function RichTooltip({ active, payload }: any) {
   }
   const pt = d.powertrain as Powertrain;
   const color = POWERTRAIN_COLORS[pt];
-
   const insights = buildInsights(d);
 
   return (
-    <div className="rounded-xl border bg-popover/95 backdrop-blur-md p-4 shadow-2xl max-w-sm text-sm">
+    <div className="rounded-2xl border border-border bg-popover p-4 shadow-xl max-w-sm text-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
             {d.brand} · {d.segment} · {d.bodyStyle}
           </div>
-          <div className="font-display text-base font-semibold leading-tight">
+          <div className="font-display text-[15px] font-semibold leading-tight text-foreground">
             {d.model}
           </div>
           <div className="text-xs text-muted-foreground">{d.trim}</div>
         </div>
         <span
           className="rounded-full px-2 py-0.5 text-[11px] font-medium"
-          style={{ background: color + "22", color }}
+          style={{ background: color + "1A", color }}
         >
           {pt}
         </span>
@@ -278,7 +344,7 @@ function RichTooltip({ active, payload }: any) {
       </div>
 
       {insights.length > 0 && (
-        <div className="mt-3 border-t border-white/10 pt-2 space-y-1">
+        <div className="mt-3 border-t border-border pt-2 space-y-1">
           {insights.map((i, idx) => (
             <div key={idx} className="text-[11px] text-muted-foreground flex gap-1.5">
               <span className="text-primary">›</span>
@@ -288,7 +354,7 @@ function RichTooltip({ active, payload }: any) {
         </div>
       )}
 
-      <div className="mt-2 text-[10px] uppercase tracking-wider text-muted-foreground/60">
+      <div className="mt-2 text-[10px] uppercase tracking-wider text-muted-foreground/70">
         Click for trim matrix
       </div>
     </div>
@@ -306,7 +372,7 @@ function Stat({
 }) {
   return (
     <div className="flex flex-col">
-      <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80">
         {label}
       </span>
       <span className={emphasize ? "font-semibold text-foreground" : "text-foreground/90"}>
@@ -316,7 +382,6 @@ function Stat({
   );
 }
 
-/** Strategic Israel-specific nudges shown in the tooltip. */
 function buildInsights(d: TrimRow): string[] {
   const out: string[] = [];
   if (d.brandOrigin === "CHINESE" && d.periodUnits > 200) {

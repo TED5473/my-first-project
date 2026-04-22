@@ -30,10 +30,10 @@ export function AlertsList({ alerts }: { alerts: Alert[] }) {
               : Info;
           const tone =
             a.severity === "critical"
-              ? "text-red-400 bg-red-500/10 border-red-500/20"
+              ? "text-red-700 bg-red-50 border-red-200"
               : a.severity === "warn"
-              ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
-              : "text-sky-400 bg-sky-500/10 border-sky-500/20";
+              ? "text-amber-700 bg-amber-50 border-amber-200"
+              : "text-sky-700 bg-sky-50 border-sky-200";
           return (
             <div
               key={a.id}

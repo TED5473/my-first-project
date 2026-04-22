@@ -74,8 +74,8 @@ export function FiltersPanel({ value, onChange, options }: FiltersPanelProps) {
                       className={cn(
                         "rounded-full border px-2.5 py-1 text-xs transition-colors",
                         on
-                          ? "bg-secondary border-white/20"
-                          : "hover:border-white/20 text-muted-foreground",
+                          ? "bg-secondary border-foreground/20"
+                          : "hover:border-foreground/20 text-muted-foreground",
                       )}
                       style={on ? { borderColor: POWERTRAIN_COLORS[pt] + "88" } : undefined}
                     >
@@ -101,7 +101,7 @@ export function FiltersPanel({ value, onChange, options }: FiltersPanelProps) {
                       onClick={() => toggle("origins", o)}
                       className={cn(
                         "rounded-full border px-2.5 py-1 text-xs transition-colors",
-                        on ? "bg-secondary border-white/20" : "text-muted-foreground",
+                        on ? "bg-secondary border-foreground/20" : "text-muted-foreground",
                       )}
                     >
                       {ORIGIN_LABELS[o]}
@@ -122,7 +122,7 @@ export function FiltersPanel({ value, onChange, options }: FiltersPanelProps) {
                       onClick={() => toggle("brands", b)}
                       className={cn(
                         "rounded-full border px-2.5 py-1 text-xs",
-                        on ? "bg-secondary border-white/20" : "text-muted-foreground",
+                        on ? "bg-secondary border-foreground/20" : "text-muted-foreground",
                       )}
                     >
                       {b}
@@ -143,7 +143,7 @@ export function FiltersPanel({ value, onChange, options }: FiltersPanelProps) {
                       onClick={() => toggle("segments", s)}
                       className={cn(
                         "rounded-full border px-2.5 py-1 text-xs",
-                        on ? "bg-secondary border-white/20" : "text-muted-foreground",
+                        on ? "bg-secondary border-foreground/20" : "text-muted-foreground",
                       )}
                     >
                       {s}
