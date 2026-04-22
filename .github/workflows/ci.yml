@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: typecheck · lint · build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ilcl
+          POSTGRES_PASSWORD: ilcl
+          POSTGRES_DB: ilcl
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U ilcl"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DATABASE_URL: postgresql://ilcl:ilcl@localhost:5432/ilcl?schema=public
+      DIRECT_URL: postgresql://ilcl:ilcl@localhost:5432/ilcl?schema=public
+      ADMIN_API_TOKEN: ci-admin-token
+      CRON_SECRET: ci-cron-secret
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Prisma generate + migrate
+        run: |
+          npx prisma migrate deploy
+          npx prisma generate
+
+      - name: Seed
+        run: npx tsx prisma/seed.ts
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx next lint
+
+      - name: Build
+        run: npx next build

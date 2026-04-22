@@ -1,6 +1,8 @@
 import { DashboardClient } from "@/components/dashboard/dashboard-client";
 import { priorPeriod, rangeFromPreset } from "@/lib/periods";
 import { getAlerts, getKpis, getTrimRows } from "@/lib/queries";
+import { ensureSeeded } from "@/lib/auto-seed";
+import { FirstBootScreen } from "@/components/dashboard/first-boot";
 import type { PeriodPreset } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +16,12 @@ export default async function DashboardPage({
   const sp = await searchParams;
   const period = (sp.period as PeriodPreset) || "12W";
   const compare = sp.compare === "1";
+
+  try {
+    await ensureSeeded();
+  } catch {
+    return <FirstBootScreen />;
+  }
 
   const range = rangeFromPreset(period);
   const comparison = compare ? priorPeriod(range) : undefined;

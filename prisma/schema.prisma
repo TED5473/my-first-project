@@ -1,15 +1,22 @@
-// IL CarLens Prisma schema
-// SQLite for local dev; switch provider to "postgresql" (e.g. Supabase) in prod.
-// NOTE: SQLite doesn't support enums, so Powertrain and OriginBucket are
-// stored as strings. See src/lib/types.ts for the canonical unions.
+// IL CarLens Prisma schema — PostgreSQL.
+// Works with any Postgres (Supabase / Neon / Railway / local docker).
+// Set DATABASE_URL in .env. For Vercel, also set DIRECT_URL to the
+// pgbouncer-less connection string (used by migrations).
+// NOTE: Powertrain and OriginBucket are stored as strings instead of
+// native Postgres enums so we can iterate on the value set without
+// schema migrations. See src/lib/enums.ts for the canonical unions.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Non-pooled connection used by Prisma Migrate. The Vercel-Neon
+  // integration injects DATABASE_URL_UNPOOLED automatically. If you set
+  // DIRECT_URL manually it takes precedence.
+  directUrl = env("DIRECT_URL")
 }
 
 /// A car brand / importer.
