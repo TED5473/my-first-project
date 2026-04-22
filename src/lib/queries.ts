@@ -154,7 +154,11 @@ export async function getKpis(
 }
 
 export async function getAlerts(limit = 6) {
-  return prisma.alert.findMany({ orderBy: { createdAt: "desc" }, take: limit });
+  return prisma.alert.findMany({
+    where: { title: { not: { startsWith: "__ilcl_" } } },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  });
 }
 
 export async function getLatestIngestions(limit = 5) {

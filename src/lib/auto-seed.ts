@@ -2,21 +2,21 @@ import "server-only";
 import { prisma } from "./db";
 
 /**
- * First-boot auto-seed. Runs once per server process.
+ * First-boot auto-seed + re-seed on data version bump.
  *
- * Flow on a fresh Vercel deploy:
- *   - `build` script has already run `prisma migrate deploy`, so tables
- *      exist (if DATABASE_URL was wired before build).
- *   - On the first page request we notice "zero brands" and populate the
- *     DB with the 2026 IL market snapshot. Takes ~15 s.
- *   - Later requests see bootstrapped=true and no-op.
+ * Flow:
+ *   - If DATABASE has never been populated → run the seed.
+ *   - If DATABASE has been populated but the stamped SEED_VERSION differs
+ *     from CURRENT_SEED_VERSION → wipe + reseed. This is how we roll out
+ *     new calibrations (e.g. switching from the hand-curated demo data to
+ *     cartube-sourced real 2026 prices/volumes) without any manual step.
  *
- * If DATABASE_URL wasn't configured before the first deploy, we throw a
- * recognisable error and the caller renders a FirstBootScreen telling the
- * user to add a database + redeploy.
- *
- * Opt out with ILCL_SKIP_AUTOSEED=1.
+ * The stamp lives in the Alert table as a sentinel row with a known title
+ * prefix; we keep it there to avoid a new migration just to track state.
  */
+
+const CURRENT_SEED_VERSION = "2026-04-cartube-v1";
+const STAMP_PREFIX = "__ilcl_seed_version:";
 
 let bootstrapped = false;
 let bootstrapPromise: Promise<void> | null = null;
@@ -39,19 +39,39 @@ export async function ensureSeeded(): Promise<void> {
   bootstrapPromise = (async () => {
     try {
       let brandCount = 0;
+      let storedVersion: string | null = null;
       try {
         brandCount = await prisma.brand.count();
+        const stamp = await prisma.alert.findFirst({
+          where: { title: { startsWith: STAMP_PREFIX } },
+        });
+        if (stamp) storedVersion = stamp.title.slice(STAMP_PREFIX.length);
       } catch (err) {
-        // Either DATABASE_URL is missing or the schema hasn't been migrated
-        // yet. In both cases the right answer is the first-boot UI.
         throw new DatabaseNotReadyError(String((err as Error).message ?? err));
       }
 
-      if (brandCount === 0) {
-        console.log("[ilcl] empty database detected — running first-boot seed…");
+      const needsSeed = brandCount === 0 || storedVersion !== CURRENT_SEED_VERSION;
+
+      if (needsSeed) {
+        if (brandCount === 0) {
+          console.log("[ilcl] empty database — running first-boot seed…");
+        } else {
+          console.log(
+            `[ilcl] seed version mismatch (${storedVersion ?? "none"} → ${CURRENT_SEED_VERSION}) — reseeding…`,
+          );
+        }
         const { runSeed } = await import("../../prisma/seed-core");
         await runSeed(prisma);
-        console.log("[ilcl] first-boot seed complete.");
+
+        // Stamp the new version.
+        await prisma.alert.create({
+          data: {
+            severity: "info",
+            title: `${STAMP_PREFIX}${CURRENT_SEED_VERSION}`,
+            body: `Seed stamped at ${new Date().toISOString()}`,
+          },
+        });
+        console.log("[ilcl] seed complete, version stamped.");
       }
 
       bootstrapped = true;
