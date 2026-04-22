@@ -168,7 +168,7 @@ export function SimulatorClient({ rows }: { rows: TrimRow[] }) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <BubbleChart rows={rows} simulated={simulated} />
+          <BubbleChart rows={rows} groupBy="trim" simulated={simulated} />
         </CardContent>
       </Card>
     </div>

@@ -9,7 +9,7 @@ import { FiltersPanel } from "./filters-panel";
 import { DataTable } from "./data-table";
 import { TrimDrawer } from "./trim-drawer";
 import { AlertsList } from "./alerts-list";
-import { applyFilters, deriveOptions, DEFAULT_FILTERS } from "@/lib/filters";
+import { aggregateByModel, applyFilters, deriveOptions, DEFAULT_FILTERS } from "@/lib/filters";
 import type { FiltersState, KpiBundle, TrimRow, PeriodPreset } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +50,7 @@ export function DashboardClient({
   });
   const options = React.useMemo(() => deriveOptions(rows), [rows]);
   const filtered = React.useMemo(() => applyFilters(rows, filters), [rows, filters]);
+  const aggregated = React.useMemo(() => aggregateByModel(filtered), [filtered]);
 
   const [focus, setFocus] = React.useState<TrimRow | null>(null);
   const [open, setOpen] = React.useState(false);
@@ -57,6 +58,17 @@ export function DashboardClient({
   function onSelect(r: TrimRow) {
     setFocus(r);
     setOpen(true);
+  }
+
+  /** Bubble chart invokes this with (brand, model) — we pick any matching
+   *  trim to populate the drawer (which shows the full model trim matrix). */
+  function onSelectModel(brand: string, model: string) {
+    const match = filtered.find((r) => r.brand === brand && r.model === model)
+      ?? rows.find((r) => r.brand === brand && r.model === model);
+    if (match) {
+      setFocus(match);
+      setOpen(true);
+    }
   }
 
   async function onRefresh() {
@@ -163,21 +175,26 @@ export function DashboardClient({
           </div>
         </CardHeader>
         <CardContent>
-          <BubbleChart rows={filtered} onSelect={onSelect} />
+          <BubbleChart
+            rows={filters.groupBy === "model" ? aggregated : filtered}
+            groupBy={filters.groupBy}
+            onSelect={onSelectModel}
+          />
         </CardContent>
       </Card>
 
-      {/* Brand sales volume, stacked by trim */}
+      {/* Brand sales volume, stacked by model or trim */}
       <Card className="overflow-visible">
         <CardHeader className="pb-0">
           <CardTitle>Sales Volume by Brand</CardTitle>
           <CardDescription>
-            Bar height is total period units per brand · Segments within each bar are
-            individual trims, colored on the same brand hue · Hover for trim breakdown
+            Bar height is total period units per brand · Each segment is{" "}
+            {filters.groupBy === "model" ? "a model" : "a trim"} colored on the
+            brand's hue · Hover for the full breakdown
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <BrandBarChart rows={filtered} />
+          <BrandBarChart rows={filtered} splitBy={filters.groupBy} />
         </CardContent>
       </Card>
 
