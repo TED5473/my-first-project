@@ -31,6 +31,12 @@ export interface TrimRow {
   ytdUnits: number;
   /** Importer URL (for citations). */
   importerUrl?: string | null;
+  /** Where the trim's specs came from (CARTUBE | IVIA | IMPORTER | MANUAL). */
+  sourceSpecs?: string | null;
+  /** Where the volume figure came from (typically IVIA). */
+  sourceVolume?: string | null;
+  /** Last-updated ISO date string of the underlying Trim row. */
+  updatedAt?: string;
 }
 
 export type PeriodPreset =
@@ -39,6 +45,10 @@ export type PeriodPreset =
   | "12W"
   | "MTD"
   | "YTD"
+  | "Q1"
+  | "Q2"
+  | "Q3"
+  | "Q4"
   | "ALL"
   | "CUSTOM";
 

@@ -76,6 +76,9 @@ model Trim {
   taxTier          String?
   importerUrl      String?
   features         String?
+  /// Where this trim's facts came from. One of: CARTUBE | IVIA | IMPORTER | SEED | MANUAL.
+  sourceSpecs      String?   @default("CARTUBE")
+  sourceVolume     String?   @default("IVIA")
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

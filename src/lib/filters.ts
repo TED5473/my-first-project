@@ -1,6 +1,18 @@
 import type { FiltersState, ModelRow, TrimRow } from "./types";
 import type { Powertrain, OriginBucket } from "./enums";
 
+/**
+ * Always-visible brands. Even when the user applies brand / origin
+ * filters that would otherwise exclude them, these brands stay on the
+ * chart and in the table. The brand chips for these are pinned in
+ * `filters-panel.tsx` and can't be unchecked.
+ */
+export const PINNED_BRANDS = ["Lynk & Co", "Zeekr"] as const;
+
+export function isPinnedBrand(brand: string): boolean {
+  return (PINNED_BRANDS as readonly string[]).includes(brand);
+}
+
 export const DEFAULT_FILTERS: FiltersState = {
   powertrains: [],
   brands: [],
@@ -20,9 +32,16 @@ export function modelKey(brand: string, model: string): string {
 export function applyFilters(rows: TrimRow[], f: FiltersState): TrimRow[] {
   const q = f.search.trim().toLowerCase();
   return rows.filter((r) => {
+    const pinned = isPinnedBrand(r.brand);
+
+    // Pinned brands bypass the brand + origin filters so Lynk & Co / Zeekr
+    // always remain visible on the chart.
+    if (!pinned) {
+      if (f.brands.length && !f.brands.includes(r.brand)) return false;
+      if (f.origins.length && !f.origins.includes(r.brandOrigin as OriginBucket)) return false;
+    }
+
     if (f.powertrains.length && !f.powertrains.includes(r.powertrain as Powertrain)) return false;
-    if (f.brands.length && !f.brands.includes(r.brand)) return false;
-    if (f.origins.length && !f.origins.includes(r.brandOrigin as OriginBucket)) return false;
     if (f.segments.length && !f.segments.includes(r.segment)) return false;
     if (f.models.length && !f.models.includes(modelKey(r.brand, r.model))) return false;
     if (r.lengthMm < f.lengthRange[0] || r.lengthMm > f.lengthRange[1]) return false;

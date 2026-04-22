@@ -1,8 +1,11 @@
+import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminActions } from "@/components/admin/admin-actions";
 import { getLatestIngestions } from "@/lib/queries";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Pencil } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -10,11 +13,18 @@ export default async function AdminPage() {
   const runs = await getLatestIngestions(20);
   return (
     <div className="container py-8 space-y-6">
-      <div>
-        <h1 className="font-display text-3xl font-semibold tracking-tight">Admin</h1>
-        <p className="text-muted-foreground mt-1">
-          Trigger a manual refresh of the pipeline, or inspect recent ingestion runs.
-        </p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="font-display text-3xl font-semibold tracking-tight">Admin</h1>
+          <p className="text-muted-foreground mt-1">
+            Trigger a manual refresh of the pipeline, or inspect recent ingestion runs.
+          </p>
+        </div>
+        <Button asChild className="gap-2">
+          <Link href="/admin/data">
+            <Pencil className="h-4 w-4" /> Open data editor
+          </Link>
+        </Button>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-1">

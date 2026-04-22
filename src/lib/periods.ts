@@ -25,6 +25,18 @@ export function rangeFromPreset(preset: PeriodPreset, now = new Date()): PeriodR
     case "YTD":
       start = new Date(end.getFullYear(), 0, 1);
       return { start, end, preset, label: `YTD ${end.getFullYear()}` };
+    case "Q1":
+    case "Q2":
+    case "Q3":
+    case "Q4": {
+      const year = end.getFullYear();
+      const idx = preset === "Q1" ? 0 : preset === "Q2" ? 1 : preset === "Q3" ? 2 : 3;
+      const qStart = new Date(year, idx * 3, 1);
+      const qEndMonth = idx * 3 + 3;
+      // Day 0 of next month = last day of this month
+      const qEnd = endOfDay(new Date(year, qEndMonth, 0));
+      return { start: qStart, end: qEnd, preset, label: `${preset} ${year}` };
+    }
     case "ALL":
       start = new Date(2020, 0, 1);
       return { start, end, preset, label: "All-time" };
@@ -69,6 +81,10 @@ export const PRESETS: { value: PeriodPreset; label: string }[] = [
   { value: "12W", label: "Last 12 Weeks" },
   { value: "MTD", label: "Month to Date" },
   { value: "YTD", label: "YTD 2026" },
+  { value: "Q1", label: "Q1 2026 (Jan–Mar)" },
+  { value: "Q2", label: "Q2 2026 (Apr–Jun)" },
+  { value: "Q3", label: "Q3 2026 (Jul–Sep)" },
+  { value: "Q4", label: "Q4 2026 (Oct–Dec)" },
   { value: "ALL", label: "All time" },
   { value: "CUSTOM", label: "Custom…" },
 ];

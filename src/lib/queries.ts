@@ -117,6 +117,9 @@ export async function getTrimRows(
       : undefined,
     ytdUnits: yMap.get(`t:${t.id}`) ?? yMap.get(`m:${t.modelId}`) ?? 0,
     importerUrl: t.importerUrl,
+    sourceSpecs: t.sourceSpecs ?? null,
+    sourceVolume: t.sourceVolume ?? null,
+    updatedAt: t.updatedAt.toISOString(),
     recentWeekly: sparkMap.get(`t:${t.id}`) ?? sparkMap.get(`m:${t.modelId}`) ?? [],
   }));
 }
