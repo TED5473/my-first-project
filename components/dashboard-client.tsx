@@ -9,7 +9,8 @@ import { SparkGrid } from "@/components/spark-grid";
 import { Toaster } from "@/components/ui/toaster";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { generateTodaySparksAction } from "@/lib/actions";
+import { Input } from "@/components/ui/input";
+import { generateTodaySparksAction, saveApiKeyAction } from "@/lib/actions";
 import { APP_COPY, DEFAULT_SUBMOLTS } from "@/lib/constants";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
 import { toast } from "@/components/ui/use-toast";
@@ -55,22 +56,11 @@ function pushNotebook(spark: Spark) {
 export function DashboardClient({ initialDigest, initialSettings }: DashboardClientProps) {
   const [isPending, startTransition] = useTransition();
   const [digest, setDigest] = useState<DailyDigest | null>(initialDigest);
-
-  const settings = useMemo<DashboardSettings>(() => {
-    if (typeof window === "undefined") {
-      return initialSettings;
-    }
-
-    const cached = localStorage.getItem(STORAGE_KEYS.settings);
-    if (!cached) {
-      return initialSettings;
-    }
-
-    return {
-      ...initialSettings,
-      ...(JSON.parse(cached) as DashboardSettings),
-    };
-  }, [initialSettings]);
+  const [settings, setSettings] = useState<DashboardSettings>(initialSettings);
+  const [quickApiKey, setQuickApiKey] = useState("");
+  const [hasEncryptedToken, setHasEncryptedToken] = useState(
+    initialSettings.apiKey === "stored",
+  );
 
   const updatedAtLabel = digest?.updatedAt
     ? format(new Date(digest.updatedAt), "PPpp")
@@ -91,6 +81,52 @@ export function DashboardClient({ initialDigest, initialSettings }: DashboardCli
       // Ignore malformed local data and continue with server defaults.
     }
   }, [digest]);
+
+  useEffect(() => {
+    const cachedSettings = localStorage.getItem(STORAGE_KEYS.settings);
+    if (!cachedSettings) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(cachedSettings) as DashboardSettings;
+      setSettings((current) => ({ ...current, ...parsed }));
+      if (parsed.apiKey?.trim()) {
+        setQuickApiKey(parsed.apiKey.trim());
+      }
+    } catch {
+      // Ignore malformed local data and continue with defaults.
+    }
+  }, []);
+
+  const activeSubmolts = useMemo(
+    () => (settings.submolts.length ? settings.submolts : DEFAULT_SUBMOLTS),
+    [settings.submolts],
+  );
+
+  const persistApiKey = async (token: string) => {
+    const response = await saveApiKeyAction({ token });
+
+    if (!response.success) {
+      return response;
+    }
+
+    setHasEncryptedToken(true);
+    const cachedSettings = localStorage.getItem(STORAGE_KEYS.settings);
+    const parsed = cachedSettings ? (JSON.parse(cachedSettings) as DashboardSettings) : {};
+
+    localStorage.setItem(
+      STORAGE_KEYS.settings,
+      JSON.stringify({
+        ...parsed,
+        provider: settings.provider,
+        submolts: activeSubmolts,
+        apiKey: token,
+      } satisfies DashboardSettings),
+    );
+
+    return response;
+  };
 
   return (
     <>
@@ -126,17 +162,70 @@ export function DashboardClient({ initialDigest, initialSettings }: DashboardCli
               <CardTitle className="text-white">Generation Controls</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="space-y-2 rounded-xl border border-white/10 bg-black/30 p-3">
+                <p className="text-xs uppercase tracking-[0.14em] text-white/60">
+                  One-time Moltbook key setup
+                </p>
+                <Input
+                  type="password"
+                  value={quickApiKey}
+                  onChange={(event) => setQuickApiKey(event.target.value)}
+                  placeholder="Paste your Moltbook API key here"
+                />
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  disabled={isPending || quickApiKey.trim().length < 8}
+                  onClick={() => {
+                    startTransition(async () => {
+                      const result = await persistApiKey(quickApiKey.trim());
+                      toast({
+                        title: result.success ? "API key saved" : "Could not save API key",
+                        description: result.message,
+                      });
+                    });
+                  }}
+                >
+                  Save key and unlock generation
+                </Button>
+                <p className="text-xs text-white/55">
+                  {hasEncryptedToken
+                    ? "Secure key cookie is active."
+                    : "No secure key found yet. Save once, then generate instantly."}
+                </p>
+              </div>
+
               <Button
                 size="lg"
                 className="w-full"
                 disabled={isPending}
                 onClick={() => {
                   startTransition(async () => {
+                    const token = quickApiKey.trim();
+
+                    if (!hasEncryptedToken && !token) {
+                      toast({
+                        title: "Moltbook key required",
+                        description:
+                          "Paste your Moltbook API key above once, then click Generate again.",
+                      });
+                      return;
+                    }
+
+                    if (token) {
+                      const saved = await persistApiKey(token);
+                      if (!saved.success) {
+                        toast({
+                          title: "Generation failed",
+                          description: saved.message,
+                        });
+                        return;
+                      }
+                    }
+
                     const response = await generateTodaySparksAction({
                       provider: settings.provider,
-                      submolts: settings.submolts.length
-                        ? settings.submolts
-                        : DEFAULT_SUBMOLTS,
+                      submolts: activeSubmolts,
                     });
 
                     if (!response.success) {
@@ -183,7 +272,7 @@ export function DashboardClient({ initialDigest, initialSettings }: DashboardCli
               <div className="rounded-xl border border-fuchsia-300/20 bg-fuchsia-500/10 p-3 text-sm text-fuchsia-100/90">
                 Using <span className="font-semibold uppercase">{settings.provider}</span> over
                 {" "}
-                {(settings.submolts.length ? settings.submolts : DEFAULT_SUBMOLTS).join(", ")}
+                {activeSubmolts.join(", ")}
               </div>
             </CardContent>
           </Card>
