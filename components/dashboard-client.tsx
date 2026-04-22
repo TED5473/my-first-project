@@ -9,6 +9,14 @@ import { SparkGrid } from "@/components/spark-grid";
 import { Toaster } from "@/components/ui/toaster";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { generateTodaySparksAction, saveApiKeyAction } from "@/lib/actions";
 import { APP_COPY, DEFAULT_SUBMOLTS } from "@/lib/constants";
@@ -58,6 +66,8 @@ export function DashboardClient({ initialDigest, initialSettings }: DashboardCli
   const [digest, setDigest] = useState<DailyDigest | null>(initialDigest);
   const [settings, setSettings] = useState<DashboardSettings>(initialSettings);
   const [quickApiKey, setQuickApiKey] = useState("");
+  const [dialogApiKey, setDialogApiKey] = useState("");
+  const [isKeyDialogOpen, setIsKeyDialogOpen] = useState(false);
   const [hasEncryptedToken, setHasEncryptedToken] = useState(
     initialSettings.apiKey === "stored",
   );
@@ -126,6 +136,52 @@ export function DashboardClient({ initialDigest, initialSettings }: DashboardCli
     );
 
     return response;
+  };
+
+  const generateSparks = async (tokenCandidate?: string): Promise<boolean> => {
+    const token = tokenCandidate?.trim() ?? quickApiKey.trim();
+
+    if (!hasEncryptedToken && !token) {
+      setIsKeyDialogOpen(true);
+      return false;
+    }
+
+    if (token) {
+      const saved = await persistApiKey(token);
+      if (!saved.success) {
+        toast({
+          title: "Generation failed",
+          description: saved.message,
+        });
+        return false;
+      }
+
+      setQuickApiKey(token);
+    }
+
+    const response = await generateTodaySparksAction({
+      provider: settings.provider,
+      submolts: activeSubmolts,
+    });
+
+    if (!response.success) {
+      toast({
+        title: "Generation failed",
+        description: response.message,
+      });
+      return false;
+    }
+
+    setDigest(response.digest);
+    upsertDigest(response.digest);
+    setIsKeyDialogOpen(false);
+
+    toast({
+      title: "Fresh sparks generated",
+      description: `Captured ${response.digest.sparks.length} ideas from the agent internet.`,
+    });
+
+    return true;
   };
 
   return (
@@ -201,48 +257,7 @@ export function DashboardClient({ initialDigest, initialSettings }: DashboardCli
                 disabled={isPending}
                 onClick={() => {
                   startTransition(async () => {
-                    const token = quickApiKey.trim();
-
-                    if (!hasEncryptedToken && !token) {
-                      toast({
-                        title: "Moltbook key required",
-                        description:
-                          "Paste your Moltbook API key above once, then click Generate again.",
-                      });
-                      return;
-                    }
-
-                    if (token) {
-                      const saved = await persistApiKey(token);
-                      if (!saved.success) {
-                        toast({
-                          title: "Generation failed",
-                          description: saved.message,
-                        });
-                        return;
-                      }
-                    }
-
-                    const response = await generateTodaySparksAction({
-                      provider: settings.provider,
-                      submolts: activeSubmolts,
-                    });
-
-                    if (!response.success) {
-                      toast({
-                        title: "Generation failed",
-                        description: response.message,
-                      });
-                      return;
-                    }
-
-                    setDigest(response.digest);
-                    upsertDigest(response.digest);
-
-                    toast({
-                      title: "Fresh sparks generated",
-                      description: `Captured ${response.digest.sparks.length} ideas from the agent internet.`,
-                    });
+                    await generateSparks();
                   });
                 }}
               >
@@ -278,6 +293,40 @@ export function DashboardClient({ initialDigest, initialSettings }: DashboardCli
           </Card>
         </section>
       </div>
+      <Dialog
+        open={isKeyDialogOpen}
+        onOpenChange={(open) => {
+          setIsKeyDialogOpen(open);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Moltbook API key needed</DialogTitle>
+            <DialogDescription>
+              Paste your key once below. The app will save it securely and generate sparks
+              immediately.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            type="password"
+            value={dialogApiKey}
+            onChange={(event) => setDialogApiKey(event.target.value)}
+            placeholder="moltbook_xxx"
+          />
+          <DialogFooter>
+            <Button
+              disabled={isPending || dialogApiKey.trim().length < 8}
+              onClick={() => {
+                startTransition(async () => {
+                  await generateSparks(dialogApiKey);
+                });
+              }}
+            >
+              Save key and generate now
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Toaster />
       <p className="sr-only">{APP_COPY.loading}</p>
     </>
