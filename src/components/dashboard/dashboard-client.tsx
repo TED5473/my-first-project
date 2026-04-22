@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { BubbleChart } from "./bubble-chart";
+import { BrandBarChart } from "./brand-bar-chart";
 import { KpiCards } from "./kpi-cards";
 import { PeriodSelector } from "./period-selector";
 import { FiltersPanel } from "./filters-panel";
@@ -100,19 +101,18 @@ export function DashboardClient({
       <section className="relative">
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
           <div>
-            <Badge variant="outline" className="mb-3 gap-1.5">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse-dot" />
+            <Badge variant="outline" className="mb-4 gap-1.5">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
               Live data · I-VIA Week {isoWeek(new Date())}
             </Badge>
-            <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">
-              Israel Passenger Car Market,{" "}
-              <span className="bg-gradient-to-r from-primary via-sky-300 to-emerald-300 bg-clip-text text-transparent">
-                at a glance
-              </span>
+            <h1 className="font-display text-[40px] md:text-[52px] font-semibold tracking-tight leading-[1.05] text-foreground">
+              Israel Passenger Car Market,
+              <br />
+              <span className="text-primary">at a glance.</span>
             </h1>
-            <p className="text-muted-foreground mt-1 max-w-2xl">
-              Weekly updated intelligence for product, pricing and sales leaders. Powered
-              by I-VIA reports + live importer pricing.
+            <p className="text-muted-foreground mt-3 max-w-2xl text-[17px]">
+              Weekly updated intelligence for product, pricing and sales leaders — powered
+              by I-VIA reports and live importer pricing.
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -164,6 +164,20 @@ export function DashboardClient({
         </CardHeader>
         <CardContent>
           <BubbleChart rows={filtered} onSelect={onSelect} />
+        </CardContent>
+      </Card>
+
+      {/* Brand sales volume, stacked by trim */}
+      <Card className="overflow-visible">
+        <CardHeader className="pb-0">
+          <CardTitle>Sales Volume by Brand</CardTitle>
+          <CardDescription>
+            Bar height is total period units per brand · Segments within each bar are
+            individual trims, colored on the same brand hue · Hover for trim breakdown
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <BrandBarChart rows={filtered} />
         </CardContent>
       </Card>
 

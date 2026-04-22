@@ -52,7 +52,7 @@ export function DataTable({ rows, onSelect, comparison, periodLabel }: Props) {
   }
 
   return (
-    <div className="rounded-xl border bg-card/60">
+    <div className="rounded-2xl border border-border bg-card card-elevated">
       <div className="flex items-center justify-between gap-3 p-4 border-b">
         <div>
           <div className="font-display font-semibold">Models & trims</div>
@@ -75,7 +75,7 @@ export function DataTable({ rows, onSelect, comparison, periodLabel }: Props) {
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-[11px] uppercase tracking-wider text-muted-foreground bg-secondary/30">
+          <thead className="text-[11px] uppercase tracking-wider text-muted-foreground bg-secondary/70">
             <tr>
               <Th k="brand" label="Brand" sort={sort} onSort={toggleSort} />
               <Th k="model" label="Model" sort={sort} onSort={toggleSort} />
@@ -100,7 +100,7 @@ export function DataTable({ rows, onSelect, comparison, periodLabel }: Props) {
                 <tr
                   key={r.id}
                   onClick={() => onSelect?.(r)}
-                  className="border-t border-white/5 hover:bg-white/5 cursor-pointer transition-colors"
+                  className="border-t border-border hover:bg-secondary/40 cursor-pointer transition-colors"
                 >
                   <td className="px-3 py-2 font-medium">{r.brand}</td>
                   <td className="px-3 py-2">{r.model}</td>

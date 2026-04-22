@@ -25,14 +25,14 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b1020",
+  themeColor: "#fbfbfd",
   width: "device-width",
   initialScale: 1,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" dir="ltr" className={`${inter.variable} ${display.variable} dark`}>
+    <html lang="en" dir="ltr" className={`${inter.variable} ${display.variable}`}>
       <body className="min-h-screen bg-background antialiased">
         <div className="hero-grid min-h-screen flex flex-col">
           <SiteHeader />

@@ -1,7 +1,6 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  darkMode: "class",
   content: [
     "./src/**/*.{ts,tsx,js,jsx,mdx}",
   ],
@@ -53,13 +52,13 @@ const config: Config = {
           blue: "#0038B8",
           white: "#FFFFFF",
         },
-        // Powertrain palette (accessible, high-contrast on dark)
+        // Powertrain palette — flat, solid, AA-contrast on white.
         pt: {
-          BEV: "#34D399",
-          PHEV: "#60A5FA",
-          HEV: "#F59E0B",
-          ICE: "#F87171",
-          MHEV: "#A78BFA",
+          BEV: "#10B981",   // emerald 500
+          PHEV: "#2563EB",  // blue 600
+          HEV: "#F59E0B",   // amber 500
+          MHEV: "#7C3AED",  // violet 600
+          ICE: "#EF4444",   // red 500
         },
       },
       borderRadius: {
@@ -72,7 +71,10 @@ const config: Config = {
         display: ["var(--font-display)", "Inter", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        glow: "0 0 0 1px rgba(59,130,246,.25), 0 10px 40px -10px rgba(59,130,246,.35)",
+        // Apple-style multi-layer soft shadow
+        elevated: "0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06)",
+        // Retained name so existing classnames keep working, but softened.
+        glow: "0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06)",
       },
       keyframes: {
         shimmer: {

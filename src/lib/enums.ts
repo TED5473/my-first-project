@@ -24,12 +24,13 @@ export const POWERTRAIN_LABELS: Record<Powertrain, string> = {
   ICE: "ICE",
 };
 
+/** Flat, AA-contrast powertrain colors tuned for the Apple-style white UI. */
 export const POWERTRAIN_COLORS: Record<Powertrain, string> = {
-  BEV: "#34D399",
-  PHEV: "#60A5FA",
+  BEV: "#10B981",
+  PHEV: "#2563EB",
   HEV: "#F59E0B",
-  MHEV: "#A78BFA",
-  ICE: "#F87171",
+  MHEV: "#7C3AED",
+  ICE: "#EF4444",
 };
 
 export const ORIGIN_LABELS: Record<OriginBucket, string> = {

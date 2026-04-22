@@ -69,7 +69,7 @@ export function AdminActions() {
         </Button>
       </div>
 
-      <pre className="rounded-md border bg-black/40 p-3 text-xs font-mono max-h-48 overflow-auto whitespace-pre-wrap">
+      <pre className="rounded-md border border-border bg-secondary p-3 text-xs font-mono max-h-48 overflow-auto whitespace-pre-wrap text-foreground">
         {log.length === 0 ? "$ waiting for action…" : log.join("\n")}
       </pre>
     </div>
