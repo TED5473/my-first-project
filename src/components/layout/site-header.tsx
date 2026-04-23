@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Car } from "lucide-react";
+import { Car, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { LangToggle } from "./lang-toggle";
@@ -53,7 +53,17 @@ export function SiteHeader() {
           })}
         </nav>
 
-        <div className="ml-auto flex items-center gap-3">
+        <div className="ml-auto flex items-center gap-2">
+          <a
+            href="https://www.cartube.co.il/"
+            target="_blank"
+            rel="noreferrer"
+            className="hidden md:inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 text-primary px-2.5 py-1 text-[11px] font-medium hover:bg-primary/15 transition-colors"
+            title="All data is sourced exclusively from cartube.co.il"
+          >
+            <MapPin className="h-3 w-3" />
+            cartube.co.il · sole source
+          </a>
           <Badge variant="success" className="hidden sm:inline-flex">
             <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
             Live · Week {getIsoWeekLabel()}

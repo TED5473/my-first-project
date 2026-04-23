@@ -2200,6 +2200,8 @@ export async function runSeed(client?: PrismaClient) {
             onRoadPriceIls: t.onRoadPriceIls,
             taxTier: t.taxTier,
             importerUrl: t.importerUrl,
+            sourceSpecs: "CARTUBE",
+            sourceVolume: "CARTUBE",
           },
         });
         const mix = t.mix ?? 1 / m.trims.length;
@@ -2235,7 +2237,7 @@ export async function runSeed(client?: PrismaClient) {
               year: s.year,
               weekOfYear: s.weekOfYear,
               units: portion,
-              source: "CARTUBE_CALIBRATION",
+              source: "CARTUBE",
             },
           });
           snapshotCount++;
@@ -2274,7 +2276,7 @@ export async function runSeed(client?: PrismaClient) {
 
   await prisma.ingestionRun.create({
     data: {
-      source: "CARTUBE_CALIBRATION",
+      source: "CARTUBE",
       ok: true,
       finishedAt: new Date(),
       rowsUpserted: trimCount + snapshotCount,

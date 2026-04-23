@@ -20,6 +20,7 @@ import { formatIls, formatNumber } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { buildInsights, type Insight } from "@/lib/insights";
 import { MapPin, Sparkles, Shield, Zap, TrendingDown, TrendingUp, Tag } from "lucide-react";
+import { SourcePill } from "./source-pill";
 
 /** Unified shape the chart actually plots. */
 interface BubblePoint {
@@ -560,8 +561,11 @@ function RichTooltip({ active, payload }: any) {
         </div>
       )}
 
-      <div className="mt-2 text-[10px] uppercase tracking-wider text-muted-foreground/70">
-        Click for trim matrix
+      <div className="mt-3 pt-2 border-t border-border flex items-center justify-between gap-2">
+        <SourcePill size="xs" />
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
+          Click for trim matrix
+        </span>
       </div>
     </div>
   );
