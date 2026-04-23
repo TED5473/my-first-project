@@ -15,7 +15,7 @@ import { prisma } from "./db";
  * prefix; we keep it there to avoid a new migration just to track state.
  */
 
-const CURRENT_SEED_VERSION = "2026-04-cartube-v5-sole-source";
+const CURRENT_SEED_VERSION = "2026-04-cartube-v6-q1-calibration";
 const STAMP_PREFIX = "__ilcl_seed_version:";
 
 let bootstrapped = false;

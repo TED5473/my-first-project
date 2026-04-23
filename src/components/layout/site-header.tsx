@@ -59,10 +59,10 @@ export function SiteHeader() {
             target="_blank"
             rel="noreferrer"
             className="hidden md:inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 text-primary px-2.5 py-1 text-[11px] font-medium hover:bg-primary/15 transition-colors"
-            title="All data is sourced exclusively from cartube.co.il"
+            title="All volumes, prices, lengths and E-range figures calibrated to cartube.co.il & I-VIA reports published through April 2026."
           >
             <MapPin className="h-3 w-3" />
-            cartube.co.il · sole source
+            Calibrated to cartube.co.il · Apr 2026
           </a>
           <Badge variant="success" className="hidden sm:inline-flex">
             <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
