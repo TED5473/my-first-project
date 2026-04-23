@@ -25,6 +25,7 @@ import { cn, formatIls, formatNumber, formatPct } from "@/lib/utils";
 import { POWERTRAIN_COLORS, type Powertrain } from "@/lib/enums";
 import { exportCsv, exportXlsx, exportPdf } from "@/lib/export";
 import { Sparkline } from "./sparkline";
+import { SourcePill } from "./source-pill";
 
 type SortKey =
   | "brand"
@@ -319,44 +320,6 @@ export function DataTable({ rows, onSelect, comparison, periodLabel }: Props) {
         </table>
       </div>
     </div>
-  );
-}
-
-/** Compact pill that shows the origin of a row's data with a hover tooltip
- *  listing specs source + volume source + last-updated timestamp. */
-function SourcePill({
-  specs,
-  volume,
-  updatedAt,
-  importerUrl,
-}: {
-  specs: string | null;
-  volume: string | null;
-  updatedAt?: string;
-  importerUrl?: string;
-}) {
-  const s = specs ?? "CARTUBE";
-  const v = volume ?? "IVIA";
-  const updated = updatedAt ? new Date(updatedAt).toLocaleDateString("en-IL") : "—";
-  const tooltip = `Specs: ${s}${importerUrl ? ` (${new URL(importerUrl).hostname})` : ""}\nVolume: ${v}\nLast updated: ${updated}`;
-  const tone =
-    s === "MANUAL"
-      ? "bg-amber-50 text-amber-700 border-amber-200"
-      : s === "IVIA"
-        ? "bg-sky-50 text-sky-700 border-sky-200"
-        : s === "IMPORTER"
-          ? "bg-violet-50 text-violet-700 border-violet-200"
-          : "bg-emerald-50 text-emerald-700 border-emerald-200";
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium whitespace-nowrap",
-        tone,
-      )}
-      title={tooltip}
-    >
-      {s}
-    </span>
   );
 }
 

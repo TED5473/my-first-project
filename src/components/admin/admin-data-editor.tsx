@@ -24,6 +24,8 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { cn, formatIls, formatNumber } from "@/lib/utils";
 import { POWERTRAINS, type Powertrain } from "@/lib/enums";
+import { SourcePill } from "@/components/dashboard/source-pill";
+import { BadgeCheck, MapPin } from "lucide-react";
 
 /** Shape returned by GET /api/admin/trims. */
 interface AdminTrim {
@@ -205,13 +207,13 @@ function EditorGrid({ password, onLock }: { password: string; onLock: () => void
   const refreshIvia = async () => {
     setRefreshing(true);
     try {
-      const res = await fetch("/api/admin/refresh-ivia", {
+      const res = await fetch("/api/admin/sync-cartube", {
         method: "POST",
         headers: { Authorization: `Bearer ${password}` },
       });
       if (!res.ok) throw new Error(`refresh → ${res.status}`);
       const data = await res.json();
-      showToast(`I-VIA refresh: ${data?.rows ?? 0} rows`);
+      showToast(`cartube.co.il sync: ${data?.rows ?? 0} rows`);
       await load();
     } catch (e) {
       showToast(`Error: ${(e as Error).message}`);
@@ -348,13 +350,13 @@ function EditorGrid({ password, onLock }: { password: string; onLock: () => void
           </div>
           <Button
             size="sm"
-            variant="outline"
             className="gap-1.5"
             onClick={refreshIvia}
             disabled={refreshing}
+            title="Ready for the future Playwright scraper on cartube.co.il"
           >
-            <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
-            Refresh from I-VIA
+            <MapPin className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
+            Sync from cartube.co.il
           </Button>
           <Button size="sm" variant="outline" className="gap-1.5" onClick={exportCsv}>
             <Download className="h-3.5 w-3.5" /> Export CSV
@@ -525,15 +527,30 @@ function EditorGrid({ password, onLock }: { password: string; onLock: () => void
                         </div>
                       </td>
                       <td className="px-3 py-2 align-middle">
-                        <span
-                          className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-[10px] font-medium"
-                          title={`Specs: ${r.sourceSpecs ?? "—"} · Volume: ${r.sourceVolume ?? "—"}`}
-                        >
-                          {r.sourceSpecs ?? "—"} / {r.sourceVolume ?? "—"}
-                        </span>
+                        <SourcePill
+                          specs={r.sourceSpecs ?? null}
+                          volume={r.sourceVolume ?? null}
+                          updatedAt={r.updatedAt}
+                          importerUrl={r.importerUrl ?? undefined}
+                        />
                       </td>
-                      <td className="px-3 py-2 align-middle text-xs text-muted-foreground">
-                        {new Date(r.updatedAt).toLocaleDateString("en-IL")}
+                      <td className="px-3 py-2 align-middle text-xs text-muted-foreground whitespace-nowrap">
+                        {(() => {
+                          const isCartube =
+                            (r.sourceSpecs ?? "CARTUBE") === "CARTUBE" &&
+                            (r.sourceVolume ?? "CARTUBE") === "CARTUBE";
+                          return (
+                            <span className="inline-flex items-center gap-1">
+                              {isCartube && (
+                                <BadgeCheck
+                                  className="h-3 w-3 text-emerald-600"
+                                  aria-label="Verified from cartube.co.il"
+                                />
+                              )}
+                              {new Date(r.updatedAt).toLocaleDateString("en-IL")}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-3 py-2 align-middle text-right">
                         <Button
@@ -567,11 +584,14 @@ function EditorGrid({ password, onLock }: { password: string; onLock: () => void
         <div className="p-3 border-t border-border flex items-start gap-2 text-[11px] text-muted-foreground">
           <Info className="h-3.5 w-3.5 mt-0.5" />
           <div>
-            Updates are written straight to the production database. When you
-            edit the "28-day units" column, we store the new value as this
-            week's snapshot so the charts refresh within a few seconds. Use
-            "Refresh from I-VIA" to run the demo scraper (or the real Playwright
-            pipeline once it's wired).
+            <strong className="text-foreground">cartube.co.il</strong> is the
+            declared sole data source for IL CarLens. Every row below starts
+            life tagged as cartube-verified; manual edits flip the row to a
+            'Manual override' badge so the provenance is always visible.
+            'Sync from cartube.co.il' runs the demo pipeline (the Playwright
+            scraper is wired through{" "}
+            <code className="font-mono">src/lib/scraping/ivia.ts</code> and
+            ready to point at cartube.co.il for real crawls).
           </div>
         </div>
       </CardContent>

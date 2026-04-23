@@ -76,9 +76,11 @@ model Trim {
   taxTier          String?
   importerUrl      String?
   features         String?
-  /// Where this trim's facts came from. One of: CARTUBE | IVIA | IMPORTER | SEED | MANUAL.
+  /// Where this trim's facts came from. One of: CARTUBE | IMPORTER | MANUAL.
+  /// Cartube.co.il is the declared sole source; IMPORTER/MANUAL are only
+  /// used when a human edit in /admin/data overrides the seeded row.
   sourceSpecs      String?   @default("CARTUBE")
-  sourceVolume     String?   @default("IVIA")
+  sourceVolume     String?   @default("CARTUBE")
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
