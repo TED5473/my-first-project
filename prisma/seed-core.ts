@@ -158,8 +158,8 @@ interface SeedBrand {
 
 const BRANDS: SeedBrand[] = [
   // ─────────────────────────────────────────────────────────────────────────
-  // #1 Jaecoo — cartube: Jan-Feb 2026 = 7,946 (Feb alone ~3,421, YoY +176%).
-  //    Single hero model in IL: J7 (ICE + PHEV).
+  // #1 Jaecoo — cartube Q1 2026: 11,232 (3,744/mo). Three models in IL:
+  //    J7 (4,717 Q1), J5 (4,004 Q1), J8 (~2,511 Q1 / ~837/mo, PHEV flagship).
   // ─────────────────────────────────────────────────────────────────────────
   {
     name: "Jaecoo",
@@ -167,7 +167,7 @@ const BRANDS: SeedBrand[] = [
     country: "China",
     origin: "CHINESE",
     importerSite: "https://www.jaecoo.co.il",
-    monthlyUnits: 3421,
+    monthlyUnits: 3744,
     yoyRatio: 2.76,
     models: [
       {
@@ -175,7 +175,7 @@ const BRANDS: SeedBrand[] = [
         slug: "j7",
         segment: "C-SUV",
         bodyStyle: "SUV",
-        brandMix: 1.0,
+        brandMix: 0.42,
         notes: "4,500 mm C-SUV, takes on Tucson / Sportage / Tiggo 7 Pro. ~50% of volume is PHEV.",
         trims: [
           {
@@ -247,6 +247,120 @@ const BRANDS: SeedBrand[] = [
           },
         ],
       },
+      // Jaecoo 5 — ~4,004 Q1 2026. 4,380 mm B-SUV; petrol / HEV / BEV trims.
+      // Cartube: 147,900 ₪ petrol Premium → 163,900 ₪ HEV Luxury.
+      {
+        name: "J5",
+        slug: "j5",
+        segment: "B-SUV",
+        bodyStyle: "SUV",
+        brandMix: 0.35,
+        notes: "4,380 mm B-SUV. Cheapest Jaecoo in IL; HEV/BEV variants attack Kona + Kamiq.",
+        trims: [
+          {
+            name: "1.6T Premium",
+            powertrain: "ICE",
+            lengthMm: 4380,
+            widthMm: 1860,
+            heightMm: 1650,
+            wheelbaseMm: 2620,
+            power: 108,
+            priceListIls: 123_000,
+            onRoadPriceIls: 147_900,
+            mix: 0.30,
+          },
+          {
+            name: "1.6T Luxury",
+            powertrain: "ICE",
+            lengthMm: 4380,
+            power: 108,
+            priceListIls: 131_000,
+            onRoadPriceIls: 156_900,
+            mix: 0.20,
+          },
+          {
+            name: "Hybrid Premium",
+            powertrain: "HEV",
+            lengthMm: 4380,
+            power: 150,
+            priceListIls: 130_000,
+            onRoadPriceIls: 154_900,
+            mix: 0.20,
+          },
+          {
+            name: "Hybrid Luxury",
+            powertrain: "HEV",
+            lengthMm: 4380,
+            power: 150,
+            priceListIls: 137_000,
+            onRoadPriceIls: 163_900,
+            mix: 0.10,
+          },
+          {
+            name: "Electric Premium",
+            powertrain: "BEV",
+            lengthMm: 4380,
+            batteryKwh: 58.9,
+            eRangeKm: 402,
+            power: 155,
+            priceListIls: 126_000,
+            onRoadPriceIls: 150_900,
+            mix: 0.12,
+          },
+          {
+            name: "Electric Luxury",
+            powertrain: "BEV",
+            lengthMm: 4380,
+            batteryKwh: 58.9,
+            eRangeKm: 402,
+            power: 155,
+            priceListIls: 134_000,
+            onRoadPriceIls: 159_900,
+            mix: 0.08,
+          },
+        ],
+      },
+      // Jaecoo 8 — PHEV flagship. 4,820 mm D-SUV, 150 km electric, 1,200 km combined.
+      // Cartube: 229,900 ₪ PHEV Luxury / Limited.
+      {
+        name: "J8",
+        slug: "j8",
+        segment: "D-SUV",
+        bodyStyle: "SUV",
+        brandMix: 0.23,
+        notes: "4,820 mm PHEV flagship. ~150 km electric range + 1,200 km combined.",
+        trims: [
+          {
+            name: "PHEV Luxury",
+            powertrain: "PHEV",
+            lengthMm: 4820,
+            widthMm: 1930,
+            heightMm: 1719,
+            wheelbaseMm: 2800,
+            batteryKwh: 34.5,
+            eRangeKm: 150,
+            combinedKm: 1200,
+            power: 350,
+            fwdAwd: "AWD",
+            priceListIls: 146_000,
+            onRoadPriceIls: 229_900,
+            mix: 0.6,
+          },
+          {
+            name: "PHEV Limited",
+            powertrain: "PHEV",
+            lengthMm: 4820,
+            batteryKwh: 34.5,
+            eRangeKm: 150,
+            combinedKm: 1200,
+            power: 350,
+            fwdAwd: "AWD",
+            priceListIls: 146_000,
+            onRoadPriceIls: 229_900,
+            mix: 0.4,
+          },
+        ],
+      },
     ],
   },
 
@@ -260,15 +374,15 @@ const BRANDS: SeedBrand[] = [
     country: "Korea",
     origin: "KOREAN",
     importerSite: "https://www.hyundai.co.il",
-    monthlyUnits: 2599,
-    yoyRatio: 0.80,
+    monthlyUnits: 3315,
+    yoyRatio: 0.77,
     models: [
       {
         name: "Tucson",
         slug: "tucson",
         segment: "C-SUV",
         bodyStyle: "SUV",
-        brandMix: 0.55,
+        brandMix: 0.20,
         trims: [
           {
             name: "1.6T Premium",
@@ -333,32 +447,66 @@ const BRANDS: SeedBrand[] = [
           },
         ],
       },
+      // Kona — Q1 2026 = 4,335 → top-2 model nationwide. ~40% HEV / ~60% EV.
       {
         name: "Kona",
         slug: "kona",
         segment: "B-SUV",
         bodyStyle: "SUV",
-        brandMix: 0.18,
+        brandMix: 0.55,
+        notes: "Q1 2026 leader at 4,335 units — IL's best-selling Hyundai by a wide margin.",
         trims: [
           {
-            name: "Electric 64 kWh",
+            name: "Electric Pure 65 kWh",
             powertrain: "BEV",
             lengthMm: 4355,
-            batteryKwh: 64.8,
-            eRangeKm: 454,
+            widthMm: 1825,
+            heightMm: 1580,
+            wheelbaseMm: 2660,
+            batteryKwh: 65.4,
+            eRangeKm: 466,
             power: 160,
-            priceListIls: 125_000,
+            priceListIls: 146_000,
             onRoadPriceIls: 174_990,
-            mix: 0.7,
+            mix: 0.35,
           },
           {
-            name: "1.6 HEV",
+            name: "Electric Ultimate 65 kWh",
+            powertrain: "BEV",
+            lengthMm: 4355,
+            batteryKwh: 65.4,
+            eRangeKm: 506,
+            power: 160,
+            priceListIls: 155_000,
+            onRoadPriceIls: 184_990,
+            mix: 0.25,
+          },
+          {
+            name: "1.6 HEV Premium",
             powertrain: "HEV",
             lengthMm: 4355,
-            power: 104,
-            priceListIls: 95_000,
-            onRoadPriceIls: 169_990,
-            mix: 0.3,
+            power: 95,
+            priceListIls: 147_000,
+            onRoadPriceIls: 176_990,
+            mix: 0.20,
+          },
+          {
+            name: "1.6 HEV Prestige",
+            powertrain: "HEV",
+            lengthMm: 4355,
+            power: 95,
+            priceListIls: 150_000,
+            onRoadPriceIls: 179_990,
+            mix: 0.12,
+          },
+          {
+            name: "1.6 HEV N Line",
+            powertrain: "HEV",
+            lengthMm: 4355,
+            power: 95,
+            priceListIls: 174_000,
+            onRoadPriceIls: 207_990,
+            mix: 0.08,
           },
         ],
       },
@@ -367,7 +515,7 @@ const BRANDS: SeedBrand[] = [
         slug: "elantra",
         segment: "C",
         bodyStyle: "Sedan",
-        brandMix: 0.17,
+        brandMix: 0.14,
         trims: [
           {
             name: "Hybrid Premium",
@@ -385,7 +533,7 @@ const BRANDS: SeedBrand[] = [
         slug: "ioniq-5",
         segment: "D-SUV",
         bodyStyle: "SUV",
-        brandMix: 0.10,
+        brandMix: 0.08,
         trims: [
           {
             name: "77.4 kWh RWD",
@@ -417,8 +565,8 @@ const BRANDS: SeedBrand[] = [
   },
 
   // ─────────────────────────────────────────────────────────────────────────
-  // #3 Toyota — Jan-Feb 2026: 7,400 (Feb ~3,367, YoY -4%).
-  //    Corolla still the volume anchor; RAV4 strong (1,161 YTD from cartube).
+  // #3 Toyota — cartube Q1 2026: 10,217 (3,406/mo, YoY -13%). Corolla Cross
+  //    at 3,800 Q1 is the actual volume leader for the brand now.
   // ─────────────────────────────────────────────────────────────────────────
   {
     name: "Toyota",
@@ -426,15 +574,15 @@ const BRANDS: SeedBrand[] = [
     country: "Japan",
     origin: "JAPANESE",
     importerSite: "https://www.toyota.co.il",
-    monthlyUnits: 3367,
-    yoyRatio: 0.96,
+    monthlyUnits: 3406,
+    yoyRatio: 0.87,
     models: [
       {
         name: "Corolla",
         slug: "corolla",
         segment: "C",
         bodyStyle: "Sedan",
-        brandMix: 0.44,
+        brandMix: 0.28,
         notes: "Single-trim 2026MY in Israel: 1.8 Hybrid @ 159,990 ₪.",
         trims: [
           {
@@ -457,7 +605,7 @@ const BRANDS: SeedBrand[] = [
         slug: "rav4",
         segment: "D-SUV",
         bodyStyle: "SUV",
-        brandMix: 0.38,
+        brandMix: 0.19,
         notes: "2026 IL lineup: 5 hybrid grades from E-VOLVE 209,990 ₪ to E-XCLUSIVE AWD 275,990 ₪.",
         trims: [
           {
@@ -513,7 +661,7 @@ const BRANDS: SeedBrand[] = [
         slug: "yaris-cross",
         segment: "B-SUV",
         bodyStyle: "SUV",
-        brandMix: 0.18,
+        brandMix: 0.10,
         trims: [
           {
             name: "1.5 Hybrid",
@@ -526,12 +674,61 @@ const BRANDS: SeedBrand[] = [
           },
         ],
       },
+      // Corolla Cross — Q1 2026 = 3,800 (Toyota's top-seller). 4,460 mm C-SUV HEV.
+      {
+        name: "Corolla Cross",
+        slug: "corolla-cross",
+        segment: "C-SUV",
+        bodyStyle: "SUV",
+        brandMix: 0.37,
+        notes: "Q1 2026 Toyota volume leader — 3,800 units. 4,460 mm, 1.8 HEV 140 hp.",
+        trims: [
+          {
+            name: "1.8 HEV Active",
+            powertrain: "HEV",
+            lengthMm: 4460,
+            widthMm: 1825,
+            heightMm: 1620,
+            wheelbaseMm: 2640,
+            power: 103,
+            priceListIls: 150_000,
+            onRoadPriceIls: 179_990,
+            mix: 0.40,
+          },
+          {
+            name: "1.8 HEV Dynamic",
+            powertrain: "HEV",
+            lengthMm: 4460,
+            power: 103,
+            priceListIls: 152_000,
+            onRoadPriceIls: 182_990,
+            mix: 0.28,
+          },
+          {
+            name: "1.8 HEV Dynamic Bitone",
+            powertrain: "HEV",
+            lengthMm: 4460,
+            power: 103,
+            priceListIls: 155_000,
+            onRoadPriceIls: 185_990,
+            mix: 0.20,
+          },
+          {
+            name: "1.8 HEV Adventure",
+            powertrain: "HEV",
+            lengthMm: 4460,
+            power: 103,
+            priceListIls: 161_000,
+            onRoadPriceIls: 192_990,
+            mix: 0.12,
+          },
+        ],
+      },
     ],
   },
 
   // ─────────────────────────────────────────────────────────────────────────
-  // #4 Chery — Jan-Feb 2026: 7,198 (Feb ~3,263, YoY +81%).
-  //    Multi-model lineup: Tiggo 4 / 7 / 8, Arrizo 8, Tiggo 9.
+  // #4 Chery — cartube Q1 2026: 9,454 (3,151/mo, YoY +82%). Five nameplates.
   // ─────────────────────────────────────────────────────────────────────────
   {
     name: "Chery",
@@ -539,8 +736,8 @@ const BRANDS: SeedBrand[] = [
     country: "China",
     origin: "CHINESE",
     importerSite: "https://cheryisrael.co.il",
-    monthlyUnits: 3263,
-    yoyRatio: 1.81,
+    monthlyUnits: 3151,
+    yoyRatio: 1.82,
     models: [
       {
         name: "Tiggo 7 Pro",
@@ -767,8 +964,8 @@ const BRANDS: SeedBrand[] = [
   },
 
   // ─────────────────────────────────────────────────────────────────────────
-  // #5 Kia — Jan-Feb 2026: 6,344 (Feb ~2,328, YoY -2%).
-  //    Sportage dominates; Niro EV, Seltos, EV6.
+  // #5 Kia — cartube Q1 2026: 8,817 (2,939/mo, YoY +3.6%). Picanto the
+  //    surprise leader at 3,782 Q1 — city-car demand is back.
   // ─────────────────────────────────────────────────────────────────────────
   {
     name: "Kia",
@@ -776,15 +973,47 @@ const BRANDS: SeedBrand[] = [
     country: "Korea",
     origin: "KOREAN",
     importerSite: "https://kia-israel.co.il",
-    monthlyUnits: 2328,
-    yoyRatio: 0.98,
+    monthlyUnits: 2939,
+    yoyRatio: 1.04,
     models: [
+      // Picanto — Q1 2026 = 3,782, IL's #5 model overall. Tiny 3,595 mm city car.
+      {
+        name: "Picanto",
+        slug: "picanto",
+        segment: "A",
+        bodyStyle: "Hatchback",
+        brandMix: 0.43,
+        notes: "Q1 2026 IL #5 model at 3,782 units. 3,595 mm city car, 1.2L 84 hp.",
+        trims: [
+          {
+            name: "1.2 LX",
+            powertrain: "ICE",
+            lengthMm: 3595,
+            widthMm: 1595,
+            heightMm: 1485,
+            wheelbaseMm: 2400,
+            power: 62,
+            priceListIls: 92_000,
+            onRoadPriceIls: 109_900,
+            mix: 0.6,
+          },
+          {
+            name: "1.2 GT Line",
+            powertrain: "ICE",
+            lengthMm: 3595,
+            power: 59,
+            priceListIls: 92_000,
+            onRoadPriceIls: 109_990,
+            mix: 0.4,
+          },
+        ],
+      },
       {
         name: "Sportage",
         slug: "sportage",
         segment: "C-SUV",
         bodyStyle: "SUV",
-        brandMix: 0.56,
+        brandMix: 0.32,
         trims: [
           {
             name: "1.6T Urban",
@@ -851,7 +1080,7 @@ const BRANDS: SeedBrand[] = [
         slug: "niro",
         segment: "B-SUV",
         bodyStyle: "SUV",
-        brandMix: 0.22,
+        brandMix: 0.10,
         trims: [
           {
             name: "EV 64 kWh",
@@ -871,7 +1100,7 @@ const BRANDS: SeedBrand[] = [
         slug: "seltos",
         segment: "B-SUV",
         bodyStyle: "SUV",
-        brandMix: 0.15,
+        brandMix: 0.10,
         trims: [
           {
             name: "LX Plus",
@@ -889,7 +1118,7 @@ const BRANDS: SeedBrand[] = [
         slug: "ev6",
         segment: "D-SUV",
         bodyStyle: "Crossover",
-        brandMix: 0.07,
+        brandMix: 0.05,
         trims: [
           {
             name: "77.4 kWh GT-Line AWD",
@@ -1697,7 +1926,7 @@ const BRANDS: SeedBrand[] = [
     country: "China",
     origin: "CHINESE",
     importerSite: "https://lynkco.co.il",
-    monthlyUnits: 180,
+    monthlyUnits: 240,
     yoyRatio: 1.80,
     models: [
       {
@@ -1857,7 +2086,7 @@ const BRANDS: SeedBrand[] = [
     country: "China",
     origin: "CHINESE",
     importerSite: "https://www.zeekr.co.il",
-    monthlyUnits: 140,
+    monthlyUnits: 200,
     yoyRatio: 1.60,
     models: [
       {
@@ -2117,15 +2346,18 @@ function generateWeeklySnapshots(
     const start = startOfWeek(d);
     const end = endOfWeek(d);
     const month = start.getMonth();
+    // Seasonality — kept mild now that brand monthlyUnits are calibrated
+    // to real month-level cartube reports. Dec push + quarter-end nudge only.
     const seasonal =
       month === 11
-        ? 1.45
+        ? 1.25
         : month === 2 || month === 5 || month === 8
-          ? 1.12
+          ? 1.08
           : month === 0
-            ? 0.65
+            ? 0.94
             : 1;
-    const jitter = 0.85 + Math.random() * 0.3;
+    // Tight jitter ±8% keeps brand totals within ~5% of cartube's Q1 2026 figures.
+    const jitter = 0.92 + Math.random() * 0.16;
     const units = Math.max(0, Math.round(weeklyBase * seasonal * jitter * yearScale));
     out.push({
       periodStart: start,
@@ -2247,29 +2479,34 @@ export async function runSeed(client?: PrismaClient) {
     console.log(`  ✓ ${b.name} — ${b.models.length} models (${b.monthlyUnits}/mo)`);
   }
 
-  // Fresh set of alerts anchored to the Feb 2026 report.
+  // Alerts anchored to the March 2026 delivery report.
   await prisma.alert.createMany({
     data: [
       {
         severity: "critical",
-        title: "Jaecoo storms to #1 brand in Israel — Jan-Feb 2026",
-        body: "Jaecoo delivered 7,946 vehicles YTD through Feb 2026, a 176% YoY surge driven almost entirely by J7 PHEV. Hyundai drops to #2 (-20% YoY). Price-gap vs Tucson ~20k ₪.",
+        title: "Jaecoo extends lead to 11,232 units — Q1 2026",
+        body: "Jaecoo closed Q1 2026 at 11,232 deliveries (13% market share), a dominant +176% YoY. Jaecoo 7 alone did 4,717 — IL's top-selling nameplate. J5 added 4,004 and J8 PHEV is ramping to ~2,500.",
         link: "https://www.cartube.co.il",
       },
       {
         severity: "warn",
-        title: "Chinese brand pressure intensifies",
-        body: "Chinese brands (Jaecoo + Chery + BYD + MG + Geely + Omoda) captured ~40% of Jan-Feb 2026 deliveries. Korean and Japanese lineups under margin pressure at the sub-200k ₪ C-SUV price point.",
+        title: "Chinese brands now 42% of market — Q1 2026",
+        body: "Chinese brands captured 42% of Q1 2026 deliveries per cartube.co.il, up from ~38% a quarter earlier. Korean lineups (Hyundai -22.8% YoY, Kia +3.6%) and Japanese (Toyota -13%) are feeling the pricing squeeze sub-200k ₪.",
       },
       {
         severity: "info",
-        title: "Green share 63.4% of market (Feb 2026)",
-        body: "PHEV 9,766 / BEV 6,831 / HEV 21,570 — PHEV continues to outsell BEV in Israel on the back of Tiggo 7 Pro, Jaecoo 7, and Outlander PHEV.",
+        title: "Green powertrain share hits 65% in Q1 2026",
+        body: "10,522 BEV (11% share, Tesla leads with 1,802) + 21,368 PHEV in Q1 2026. PHEV continues to outsell BEV on the back of Jaecoo 7 PHEV, Tiggo 7 Pro PHEV, Outlander PHEV.",
       },
       {
         severity: "info",
-        title: "MG4 2026 refresh arrives — 142,888 ₪",
-        body: "MG's refreshed MG4 hatch landed in Israel at 142,888 ₪, undercutting Kona EV by ~30k ₪ and Dolphin by ~7k ₪. Watch for impact on C-hatch BEV share.",
+        title: "Corolla Cross now Toyota's IL volume leader",
+        body: "Toyota Corolla Cross Q1 2026 = 3,800 deliveries, overtaking the Corolla sedan as Toyota IL's top seller. HEV-only from 179,990 ₪ (Active) to 192,990 ₪ (Adventure).",
+      },
+      {
+        severity: "info",
+        title: "Kia Picanto surges to IL #5 model in Q1 2026",
+        body: "Picanto Q1 2026 = 3,782 deliveries — entry-level demand is back. Sits at the very bottom-left of our bubble chart (3,595 mm, 109,900 ₪), a quietly important profit driver for Telcar.",
       },
     ],
   });

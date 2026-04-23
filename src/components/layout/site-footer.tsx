@@ -7,7 +7,7 @@ export function SiteFooter() {
         <div className="flex items-center gap-2 text-foreground">
           <MapPin className="h-3.5 w-3.5 text-primary" />
           <span className="font-medium">
-            All data sourced exclusively from{" "}
+            Data calibrated to{" "}
             <a
               href="https://www.cartube.co.il/"
               target="_blank"
@@ -15,10 +15,11 @@ export function SiteFooter() {
               className="text-primary hover:underline"
             >
               cartube.co.il
-            </a>
+            </a>{" "}
+            &amp; I-VIA reports — April 2026
           </span>
           <span className="hidden sm:inline text-muted-foreground">
-            — official Israel car market authority
+            · Q1 2026 = 95,188 deliveries · 42% Chinese brand share · 65% green
           </span>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
